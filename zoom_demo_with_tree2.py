@@ -40,13 +40,22 @@ class JpegTree:
 
     # TODO: discover a blending approach 
     def generateView(self, x, y, curr_xlim, curr_ylim):
+        img =  self.data[curr_ylim[0]:curr_ylim[1], curr_xlim[0]:curr_xlim[1]]
+        return cv2.resize(img, (1024, 768))
 
+mm_25_00_t = JpegTree(mm_25_00, [], mm_25_00_x, mm_25_00_y, mm_25_w, mm_25_h)
+mm_25_01_t = JpegTree(mm_25_01, [], mm_25_01_x, mm_25_01_y, mm_25_w, mm_25_h)
+mm_25_02_t = JpegTree(mm_25_02, [], mm_25_02_x, mm_25_02_y, mm_25_w, mm_25_h)
+m_8_00_t = JpegTree(mm_8_00, [mm_25_00_t, mm_25_01_t, mm_25_02_t], 0, 0, mm_8_w, mm_8_h)
 
+curr_img = mm_8_00.copy()
 curr_node = m_8_00_t
 
 out_focus = mm_8_00.copy()
 out_focus_copy = out_focus.copy()
 
+cur_xlim = [0,mm_8_w]
+cur_ylim = [0,mm_8_h]
 xlim = out_focus.shape[1]
 ylim = out_focus.shape[0]
 
@@ -135,7 +144,9 @@ def find_tree_zoom_in_img(xlim, ylim, x, y):
     return img 
        
        
+def zoom_tree_factory(base_scale = 2.):
     def zoom_fun(event, x, y, flags, param):
+        global cur_xlim, cur_ylim, curr_node, curr_img
         if event == cv2.EVENT_LBUTTONDOWN or event == cv2.EVENT_MOUSEWHEEL:
             cur_xrange = (cur_xlim[1] - cur_xlim[0]) * 0.5
             cur_yrange = (cur_ylim[1] - cur_ylim[0]) * 0.5 
@@ -157,6 +168,10 @@ def find_tree_zoom_in_img(xlim, ylim, x, y):
                     scale_factor = base_scale
                 else:
                     scale_factor = 1
+            xlow = x*2 - cur_xrange * scale_factor 
+            xhigh = x*2 + cur_xrange * scale_factor
+            ylow = y*2 - cur_yrange * scale_factor 
+            yhigh = y*2 + cur_yrange * scale_factor 
             cur_xlim = [xlow if xlow > -1 else 0,
                     xhigh if xhigh < xlim else xlim-1]
             cur_ylim = [ylow if ylow > -1 else 0, 
@@ -172,18 +187,22 @@ def find_tree_zoom_in_img(xlim, ylim, x, y):
        
        
 def main():
+    global cur_xlim, cur_ylim, curr_img
     '''test some Jpeg Tree with user input'''
     '''at the same time, print the tree structure, and the current loaded tree''' 
     '''How jpeg is configured?'''# zoom in / out demo
+    f = zoom_tree_factory(base_scale = scale)
     cv2.namedWindow("zoom")
     cv2.setMouseCallback("zoom", f)
     cv2.resizeWindow("zoom", 1024, 767)
 
+    curr_img = cv2.resize(curr_img, (1024, 768)) 
 
     while True:
      #   if focus_now:
      #		out_focus_copy = out_focus.copy()
     
+        cv2.imshow("zoom", curr_img)
         key = cv2.waitKey(20)
     
         if key != -1:

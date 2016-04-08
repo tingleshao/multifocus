@@ -70,6 +70,7 @@ ratio = 2048 / (325 * 2)#
 scale = 1.5 
 
 # TODO: based on the point and curr x / y lim, we should able to determine where we are in the tree (efficiently)
+# TOOD: current version is still based on one image, try to make it work switching between different images. 
 def find_tree_zoom_in_img(xlim, ylim, x, y): 
     img = None
     ratio2 = 1024  / (xlim[1] - xlim[0])

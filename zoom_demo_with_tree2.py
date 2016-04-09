@@ -37,6 +37,8 @@ class JpegTree:
         self.upper_y = upper_y 
         self.w = w 
         self.h = h   
+        self.xlim = data.shape[1]
+        self.ylim = data.shape[0]
 
     # TODO: discover a blending approach 
     def generateView(self, x, y, curr_xlim, curr_ylim):
@@ -45,7 +47,7 @@ class JpegTree:
             #    else:
             #        curr_img = out_focus[cur_ylim[0]:cur_ylim[1], cur_xlim[0]:cur_xlim[1]]                
             #        curr_img = cv2.resize(curr_img, (1024, 768)) 
-        if (cur_ylim[1] - cur_ylim[0]) < 200: 
+        if (curr_ylim[1] - curr_ylim[0]) < 200: 
             img = self.find_zoom_in_img(curr_xlim, curr_ylim, x, y)
         else: 
             img =  self.data[curr_ylim[0]:curr_ylim[1], curr_xlim[0]:curr_xlim[1]]
@@ -53,7 +55,80 @@ class JpegTree:
         
     def find_zoom_in_img(self, curr_xlim, curr_ylim, x, y): 
         print "in children zoom in mode!"
-        return self.data[curr_ylim[0]:curr_ylim[1], curr_xlim[0]:curr_xlim[1]]
+     #   xlim = self.xlim
+    #    ylim = self.ylim
+        xlim = curr_xlim
+        ylim = curr_ylim
+        print "xlim: " + str(xlim)
+        print "ylim: " + str(ylim)
+        img = None
+        ratio2 = 1024 / (xlim[1] - xlim[0])
+        if mm_25_00_x / 2 <= x <= mm_25_w / 2 + mm_25_00_x / 2 and mm_25_00_y / 2 <= y <= mm_25_h / 2 + mm_25_00_y / 2: 
+            print "in zoom in mode 0!!!!!!!"
+            # blend with the 25mm image 
+            img = out_focus[ylim[0]:ylim[1], xlim[0]:xlim[1]]
+            in_focus_x0 = xlim[0] if xlim[0] > mm_25_00_x else mm_25_00_x
+            in_focus_x1 = xlim[1] if xlim[1] < mm_25_w + mm_25_00_x else mm_25_w + mm_25_00_x 
+            in_focus_y0 = ylim[0] if ylim[0] > mm_25_00_y else mm_25_00_y
+            in_focus_y1 = ylim[1] if ylim[1] < mm_25_h + mm_25_00_y else mm_25_h + mm_25_00_y
+            real_x0 = ( in_focus_x0 - xlim[0] ) * ratio2 
+            real_x1 = ( in_focus_x1 - xlim[0] ) * ratio2 
+            real_y0 = ( in_focus_y0 - ylim[0] ) * ratio2 
+            real_y1 = ( in_focus_y1 - ylim[0] ) * ratio2 
+            in_focus_x0 = (in_focus_x0 - mm_25_00_x) * ratio 
+            in_focus_x1 = (in_focus_x1 - mm_25_00_x) * ratio 
+            in_focus_y0 = (in_focus_y0 - mm_25_00_y) * ratio 
+            in_focus_y1 = (in_focus_y1 - mm_25_00_y) * ratio
+            img = cv2.resize(img, (1024, 768)) 
+            sub_img = mm_25_00[in_focus_y0:in_focus_y1, in_focus_x0:in_focus_x1]
+            sub_img = cv2.resize(sub_img, (int(real_x1 - real_x0), int(real_y1 - real_y0)))
+            img[real_y0:real_y1, real_x0:real_x1] = sub_img 
+      #     img = cv2.resize(img, (1024, 768)) 
+        elif mm_25_01_x / 2 <= x <= mm_25_w / 2 + mm_25_01_x / 2 and mm_25_01_y /2 <= y <= mm_25_h / 2 + mm_25_01_y / 2:
+            print "in zoom in mode 1!!!!!!!"
+            # blend with the 25mm image 
+            img = out_focus[ylim[0]:ylim[1], xlim[0]:xlim[1]]
+            in_focus_x0 = xlim[0] if xlim[0] > mm_25_01_x else mm_25_01_x
+            in_focus_x1 = xlim[1] if xlim[1] < mm_25_w + mm_25_01_x else mm_25_w + mm_25_01_x 
+            in_focus_y0 = ylim[0] if ylim[0] > mm_25_01_y else mm_25_01_y
+            in_focus_y1 = ylim[1] if ylim[1] < mm_25_h + mm_25_01_y else mm_25_h + mm_25_01_y
+            real_x0 = ( in_focus_x0 - xlim[0] ) * ratio2 
+            real_x1 = ( in_focus_x1 - xlim[0] ) * ratio2 
+            real_y0 = ( in_focus_y0 - ylim[0] ) * ratio2 
+            real_y1 = ( in_focus_y1 - ylim[0] ) * ratio2 
+            in_focus_x0 = (in_focus_x0 - mm_25_01_x) * ratio 
+            in_focus_x1 = (in_focus_x1 - mm_25_01_x) * ratio 
+            in_focus_y0 = (in_focus_y0 - mm_25_01_y) * ratio 
+            in_focus_y1 = (in_focus_y1 - mm_25_01_y) * ratio
+            img = cv2.resize(img, (1024, 768)) 
+            sub_img = mm_25_01[in_focus_y0:in_focus_y1, in_focus_x0:in_focus_x1]
+            sub_img = cv2.resize(sub_img, (int(real_x1 - real_x0), int(real_y1 - real_y0)))
+            img[real_y0:real_y1, real_x0:real_x1] = sub_img 
+        elif mm_25_02_x / 2 <= x <= mm_25_w / 2 + mm_25_02_x / 2 and mm_25_02_y / 2 <= y <= mm_25_h / 2 + mm_25_02_y / 2:
+            print "in zoom in mode 2!!!!!!!"
+            # blend with the 25mm image 
+            img = out_focus[ylim[0]:ylim[1], xlim[0]:xlim[1]]
+            in_focus_x0 = xlim[0] if xlim[0] > mm_25_02_x else mm_25_02_x
+            in_focus_x1 = xlim[1] if xlim[1] < mm_25_w + mm_25_02_x else mm_25_w + mm_25_02_x 
+            in_focus_y0 = ylim[0] if ylim[0] > mm_25_00_y else mm_25_02_y
+            in_focus_y1 = ylim[1] if ylim[1] < mm_25_h + mm_25_02_y else mm_25_h + mm_25_02_y
+            real_x0 = ( in_focus_x0 - xlim[0] ) * ratio2 
+            real_x1 = ( in_focus_x1 - xlim[0] ) * ratio2 
+            real_y0 = ( in_focus_y0 - ylim[0] ) * ratio2 
+            real_y1 = ( in_focus_y1 - ylim[0] ) * ratio2 
+            in_focus_x0 = (in_focus_x0 - mm_25_02_x) * ratio 
+            in_focus_x1 = (in_focus_x1 - mm_25_02_x) * ratio 
+            in_focus_y0 = (in_focus_y0 - mm_25_02_y) * ratio 
+            in_focus_y1 = (in_focus_y1 - mm_25_02_y) * ratio
+            img = cv2.resize(img, (1024, 768)) 
+            sub_img = mm_25_02[in_focus_y0:in_focus_y1, in_focus_x0:in_focus_x1]
+            sub_img = cv2.resize(sub_img, (int(real_x1 - real_x0), int(real_y1 - real_y0)))
+            img[real_y0:real_y1, real_x0:real_x1] = sub_img 
+        else: 
+            print "NOT in zoom in mode!!!!!!!"
+            img = out_focus[ylim[0]:ylim[1], xlim[0]:xlim[1]] 
+            img = cv2.resize(img, (1024, 768)) 
+        return img 
         
 
 mm_25_00_t = JpegTree(mm_25_00, [], mm_25_00_x, mm_25_00_y, mm_25_w, mm_25_h)
@@ -87,7 +162,6 @@ scale = 1.5
 def find_tree_zoom_in_img(xlim, ylim, x, y): 
     img = None
     ratio2 = 1024  / (xlim[1] - xlim[0])
-
     x = x
     y = y
     if mm_25_00_x / 2 <= x <= mm_25_w / 2 + mm_25_00_x / 2 and mm_25_00_y / 2  <= y <= mm_25_h / 2+ mm_25_00_y / 2: 

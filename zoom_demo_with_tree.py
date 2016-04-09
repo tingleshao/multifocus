@@ -38,9 +38,9 @@ mm_25_02_x = 555 * 2
 mm_25_02_y = 330 * 2 
 
 
-ratio = 2048 / (325 * 2)#
+ratio = 2048 / (325 * 2)
+#
 #ratio2 = 1024  / (mm_25_00_w - mm_25_00_x)
-
 #fig = plt.figure()
 #ax = fig.add_subplot(211)
 #ax.plot(range(10))

@@ -40,8 +40,21 @@ class JpegTree:
 
     # TODO: discover a blending approach 
     def generateView(self, x, y, curr_xlim, curr_ylim):
-        img =  self.data[curr_ylim[0]:curr_ylim[1], curr_xlim[0]:curr_xlim[1]]
+       #    if (cur_ylim[1] - cur_ylim[0]) < 200:
+            #        curr_img = find_zoom_in_img(cur_xlim, cur_ylim, x, y)
+            #    else:
+            #        curr_img = out_focus[cur_ylim[0]:cur_ylim[1], cur_xlim[0]:cur_xlim[1]]                
+            #        curr_img = cv2.resize(curr_img, (1024, 768)) 
+        if (cur_ylim[1] - cur_ylim[0]) < 200: 
+            img = self.find_zoom_in_img(curr_xlim, curr_ylim, x, y)
+        else: 
+            img =  self.data[curr_ylim[0]:curr_ylim[1], curr_xlim[0]:curr_xlim[1]]
         return cv2.resize(img, (1024, 768))
+        
+    def find_zoom_in_img(self, curr_xlim, curr_ylim, x, y): 
+        print "in children zoom in mode!"
+        return self.data[curr_ylim[0]:curr_ylim[1], curr_xlim[0]:curr_xlim[1]]
+        
 
 mm_25_00_t = JpegTree(mm_25_00, [], mm_25_00_x, mm_25_00_y, mm_25_w, mm_25_h)
 mm_25_01_t = JpegTree(mm_25_01, [], mm_25_01_x, mm_25_01_y, mm_25_w, mm_25_h)
@@ -183,7 +196,7 @@ def zoom_tree_factory(base_scale = 2.):
             #    else:
             #        curr_img = out_focus[cur_ylim[0]:cur_ylim[1], cur_xlim[0]:cur_xlim[1]]                
             #        curr_img = cv2.resize(curr_img, (1024, 768)) 
-                 curr_img = curr_node.generateView(x, y, cur_xlim, cur_ylim)
+                 curr_img = curr_node.generateView(x, y, cur_xlim, cur_ylim) # current node is responsible for generating a view.
     return zoom_fun
        
        

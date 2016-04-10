@@ -27,7 +27,24 @@ mm_25_02_x = 555 * 2
 mm_25_02_y = 330 * 2 
 
 
-class JpegTree:
+class JPEGTreeNavigator: 
+    def f(self):
+        return 'hello world!'
+         
+    def __init__(self, starting_node):
+        self.curr_node = starting_node
+        
+    def generateView(self, x, y, curr_xlim, curr_ylim):
+    # responsible for triversing the tree
+        img = None
+        if (curr_ylim[1] - curr_ylim[0] < 200):
+            img = self.curr_node.generateView(x, y, curr_xlim, curr_ylim)
+        else: 
+            img = self.curr_node.generateView(x, y, curr_xlim, curr_ylim)
+        return img
+        
+
+class JPEGNode:
     def f(self): 
         return 'hello world'
         
@@ -56,8 +73,6 @@ class JpegTree:
         
     def find_zoom_in_img(self, curr_xlim, curr_ylim, x, y): 
         print "in children zoom in mode!"
-     #   xlim = self.xlim
-    #    ylim = self.ylim
         xlim = curr_xlim
         ylim = curr_ylim
         print "xlim: " + str(xlim)
@@ -135,13 +150,14 @@ class JpegTree:
         return img 
         
 
-mm_25_00_t = JpegTree(mm_25_00, [], mm_25_00_x, mm_25_00_y, mm_25_w, mm_25_h)
-mm_25_01_t = JpegTree(mm_25_01, [], mm_25_01_x, mm_25_01_y, mm_25_w, mm_25_h)
-mm_25_02_t = JpegTree(mm_25_02, [], mm_25_02_x, mm_25_02_y, mm_25_w, mm_25_h)
-m_8_00_t = JpegTree(mm_8_00, [mm_25_00_t, mm_25_01_t, mm_25_02_t], 0, 0, mm_8_w, mm_8_h)
+mm_25_00_t = JPEGNode(mm_25_00, [], mm_25_00_x, mm_25_00_y, mm_25_w, mm_25_h)
+mm_25_01_t = JPEGNode(mm_25_01, [], mm_25_01_x, mm_25_01_y, mm_25_w, mm_25_h)
+mm_25_02_t = JPEGNode(mm_25_02, [], mm_25_02_x, mm_25_02_y, mm_25_w, mm_25_h)
+m_8_00_t = JPEGNode(mm_8_00, [mm_25_00_t, mm_25_01_t, mm_25_02_t], 0, 0, mm_8_w, mm_8_h)
 
+nav = JPEGTreeNavigator(m_8_00_t)
 curr_img = mm_8_00.copy()
-curr_node = m_8_00_t
+#curr_node = m_8_00_t
 
 out_focus = mm_8_00.copy()
 out_focus_copy = out_focus.copy()
@@ -158,7 +174,7 @@ scale = 1.5
        
 def zoom_tree_factory(base_scale = 2.):
     def zoom_fun(event, x, y, flags, param):
-        global cur_xlim, cur_ylim, curr_node, curr_img
+        global cur_xlim, cur_ylim, nav, curr_img
         if event == cv2.EVENT_LBUTTONDOWN or event == cv2.EVENT_MOUSEWHEEL:
             cur_xrange = (cur_xlim[1] - cur_xlim[0]) * 0.5
             cur_yrange = (cur_ylim[1] - cur_ylim[0]) * 0.5 
@@ -189,7 +205,7 @@ def zoom_tree_factory(base_scale = 2.):
             cur_ylim = [ylow if ylow > -1 else 0, 
                     yhigh if yhigh < ylim else ylim-1] 
             if -0.1 <= ((cur_ylim[1] - cur_ylim[0]) / (cur_xlim[1] - cur_xlim[0]) - 3./4) <= 0.1: 
-                curr_img = curr_node.generateView(x, y, cur_xlim, cur_ylim) # current node is responsible for generating a view.
+                curr_img = nav.generateView(x, y, cur_xlim, cur_ylim) # current node is responsible for generating a view.
     return zoom_fun
        
        

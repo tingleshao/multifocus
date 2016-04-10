@@ -27,30 +27,120 @@ mm_25_02_x = 555 * 2
 mm_25_02_y = 330 * 2 
 
 
+# TODO: add a "name" attribute to the image so it can print itself's name and the navigator can print out this information
+
 class JPEGTreeNavigator: 
     def f(self):
         return 'hello world!'
          
     def __init__(self, starting_node):
         self.curr_node = starting_node
+        self.prev_node = None
+        self.in_layer2 = False
         
     def generateView(self, x, y, curr_xlim, curr_ylim):
     # responsible for triversing the tree
         img = None
+        
+        xlim = curr_xlim
+        ylim = curr_ylim 
+        ratio2 = 1024 / (xlim[1] - xlim[0])
         if (curr_ylim[1] - curr_ylim[0] < 200):
-            img = self.curr_node.generateView(x, y, curr_xlim, curr_ylim)
+            # node should not have generateView() 
+            # approach: having a reference to the current mom node, and blend using the mom node data and current data 
+            if not self.in_layer2:
+                self.prev_node = self.curr_node 
+            # where can we get mm_25_00_xxx? => it is global. 
+            if mm_25_00_x / 2 <= x <= mm_25_w / 2 + mm_25_00_x / 2 and mm_25_00_y / 2 <= y <= mm_25_h / 2 + mm_25_00_y / 2: 
+                if not self.in_layer2:
+                    self.curr_node = self.curr_node.getChild(0)
+                print "in zoom mode 0!w"
+                child_img = self.curr_node.data 
+                img = self.prev_node.data[ylim[0]:ylim[1], xlim[0]:xlim[1]]
+                in_focus_x0 = xlim[0] if xlim[0] > mm_25_00_x else mm_25_00_x 
+                in_focus_x1 = xlim[1] if xlim[1] < mm_25_w + mm_25_00_x else mm_25_w + mm_25_00_x 
+                in_focus_y0 = ylim[0] if ylim[0] > mm_25_00_y else mm_25_00_y
+                in_focus_y1 = ylim[1] if ylim[1] < mm_25_h + mm_25_00_y else mm_25_h + mm_25_00_y 
+                real_x0 = ( in_focus_x0 - xlim[0] ) * ratio2 
+                real_x1 = ( in_focus_x1 - xlim[0] ) * ratio2 
+                real_y0 = ( in_focus_y0 - ylim[0] ) * ratio2 
+                real_y1 = ( in_focus_y1 - ylim[0] ) * ratio2    
+                in_focus_x0 = (in_focus_x0 - mm_25_00_x) * ratio 
+                in_focus_x1 = (in_focus_x1 - mm_25_00_x) * ratio 
+                in_focus_y0 = (in_focus_y0 - mm_25_00_y) * ratio 
+                in_focus_y1 = (in_focus_y1 - mm_25_00_y) * ratio
+                img = cv2.resize(img, (1024, 768)) 
+                sub_img = child_img[in_focus_y0:in_focus_y1, in_focus_x0:in_focus_x1]
+                sub_img = cv2.resize(sub_img, (int(real_x1 - real_x0), int(real_y1 - real_y0)))
+                img[real_y0:real_y1, real_x0:real_x1] = sub_img 
+            elif mm_25_01_x / 2 <= x <= mm_25_w / 2 + mm_25_01_x / 2 and mm_25_01_y / 2 <= y <= mm_25_h / 2 + mm_25_01_y / 2:
+                if not self.in_layer2:
+                    self.curr_node = self.curr_node.getChild(1)
+                print "in zoom mode 1!w"
+                child_img = self.curr_node.data 
+                img = self.prev_node.data[ylim[0]:ylim[1], xlim[0]:xlim[1]]
+                in_focus_x0 = xlim[0] if xlim[0] > mm_25_01_x else mm_25_01_x 
+                in_focus_x1 = xlim[1] if xlim[1] < mm_25_w + mm_25_01_x else mm_25_w + mm_25_01_x 
+                in_focus_y0 = ylim[0] if ylim[0] > mm_25_01_y else mm_25_01_y
+                in_focus_y1 = ylim[1] if ylim[1] < mm_25_h + mm_25_01_y else mm_25_h + mm_25_01_y 
+                real_x0 = ( in_focus_x0 - xlim[0] ) * ratio2 
+                real_x1 = ( in_focus_x1 - xlim[0] ) * ratio2 
+                real_y0 = ( in_focus_y0 - ylim[0] ) * ratio2 
+                real_y1 = ( in_focus_y1 - ylim[0] ) * ratio2    
+                in_focus_x0 = (in_focus_x0 - mm_25_01_x) * ratio 
+                in_focus_x1 = (in_focus_x1 - mm_25_01_x) * ratio 
+                in_focus_y0 = (in_focus_y0 - mm_25_01_y) * ratio 
+                in_focus_y1 = (in_focus_y1 - mm_25_01_y) * ratio
+                img = cv2.resize(img, (1024, 768)) 
+                sub_img = child_img[in_focus_y0:in_focus_y1, in_focus_x0:in_focus_x1]
+                sub_img = cv2.resize(sub_img, (int(real_x1 - real_x0), int(real_y1 - real_y0)))
+                img[real_y0:real_y1, real_x0:real_x1] = sub_img 
+            elif mm_25_02_x / 2 <= x <= mm_25_w / 2 + mm_25_02_x / 2 and mm_25_02_y / 2 <= y <= mm_25_h / 2 + mm_25_02_y / 2:
+                if not self.in_layer2:
+                    self.curr_node = self.curr_node.getChild(2)
+                print "in zoom mode 2!w"
+                child_img = self.curr_node.data 
+                img = self.prev_node.data[ylim[0]:ylim[1], xlim[0]:xlim[1]]
+                in_focus_x0 = xlim[0] if xlim[0] > mm_25_02_x else mm_25_02_x 
+                in_focus_x1 = xlim[1] if xlim[1] < mm_25_w + mm_25_02_x else mm_25_w + mm_25_02_x 
+                in_focus_y0 = ylim[0] if ylim[0] > mm_25_02_y else mm_25_02_y
+                in_focus_y1 = ylim[1] if ylim[1] < mm_25_h + mm_25_02_y else mm_25_h + mm_25_02_y 
+                real_x0 = ( in_focus_x0 - xlim[0] ) * ratio2 
+                real_x1 = ( in_focus_x1 - xlim[0] ) * ratio2 
+                real_y0 = ( in_focus_y0 - ylim[0] ) * ratio2 
+                real_y1 = ( in_focus_y1 - ylim[0] ) * ratio2    
+                in_focus_x0 = (in_focus_x0 - mm_25_02_x) * ratio 
+                in_focus_x1 = (in_focus_x1 - mm_25_02_x) * ratio 
+                in_focus_y0 = (in_focus_y0 - mm_25_02_y) * ratio 
+                in_focus_y1 = (in_focus_y1 - mm_25_02_y) * ratio
+                img = cv2.resize(img, (1024, 768)) 
+                sub_img = child_img[in_focus_y0:in_focus_y1, in_focus_x0:in_focus_x1]
+                sub_img = cv2.resize(sub_img, (int(real_x1 - real_x0), int(real_y1 - real_y0)))
+                img[real_y0:real_y1, real_x0:real_x1] = sub_img 
+            else: 
+            # can we ever get here? 
+                 print "NOT in zoom in mode!!!!!!!"
+                 img = out_focus[ylim[0]:ylim[1], xlim[0]:xlim[1]] 
+                 img = cv2.resize(img, (1024, 768))             
+         #   img = self.curr_node.generateView(x, y, curr_xlim, curr_ylim)
+            self.in_layer2 = True
         else: 
-            img = self.curr_node.generateView(x, y, curr_xlim, curr_ylim)
-        return img
+            if self.curr_node.getMom():
+                self.curr_node = self.curr_node.getMom()
+                self.in_layer2 = False
+            img = self.curr_node.data[curr_ylim[0]:curr_ylim[1], curr_xlim[0]:curr_xlim[1]]
+        return cv2.resize(img, (1024, 768))
         
 
 class JPEGNode:
     def f(self): 
         return 'hello world'
         
-    def __init__(self, data, children, upper_x, upper_y, w, h): 
+     
+    def __init__(self, data, children, mom, upper_x, upper_y, w, h): 
         self.data = data 
         self.children = children 
+        self.mom = mom
         self.upper_x = upper_x  
         self.upper_y = upper_y 
         self.w = w 
@@ -58,18 +148,29 @@ class JPEGNode:
         self.xlim = data.shape[1]
         self.ylim = data.shape[0]
 
+    def setMom(self, mom):
+        self.mom = mom
+     
+    def getMom(self):
+        return self.mom
+     
+    def getChild(self, index):
+    # later change this by having a map between x, y and child id 
+    # so that we can have multiple children returned.
+        return self.children[index]
+          
     # TODO: discover a blending approach 
-    def generateView(self, x, y, curr_xlim, curr_ylim):
-       #    if (cur_ylim[1] - cur_ylim[0]) < 200:
-            #        curr_img = find_zoom_in_img(cur_xlim, cur_ylim, x, y)
+  #  def generateView(self, x, y, curr_xlim, curr_ylim):
+  #     #    if (cur_ylim[1] - cur_ylim[0]) < 200:
+  #          #        curr_img = find_zoom_in_img(cur_xlim, cur_ylim, x, y)
             #    else:
             #        curr_img = out_focus[cur_ylim[0]:cur_ylim[1], cur_xlim[0]:cur_xlim[1]]                
             #        curr_img = cv2.resize(curr_img, (1024, 768)) 
-        if (curr_ylim[1] - curr_ylim[0]) < 200: 
-            img = self.find_zoom_in_img(curr_xlim, curr_ylim, x, y)
-        else: 
-            img =  self.data[curr_ylim[0]:curr_ylim[1], curr_xlim[0]:curr_xlim[1]]
-        return cv2.resize(img, (1024, 768))
+   #     if (curr_ylim[1] - curr_ylim[0]) < 200: 
+   #         img = self.find_zoom_in_img(curr_xlim, curr_ylim, x, y)
+  #      else: 
+   #         img =  self.data[curr_ylim[0]:curr_ylim[1], curr_xlim[0]:curr_xlim[1]]
+   #     return img
         
     def find_zoom_in_img(self, curr_xlim, curr_ylim, x, y): 
         print "in children zoom in mode!"
@@ -149,13 +250,16 @@ class JPEGNode:
             img = cv2.resize(img, (1024, 768)) 
         return img 
         
+mm_25_00_t = JPEGNode(mm_25_00, [], None, mm_25_00_x, mm_25_00_y, mm_25_w, mm_25_h)
+mm_25_01_t = JPEGNode(mm_25_01, [], None, mm_25_01_x, mm_25_01_y, mm_25_w, mm_25_h)
+mm_25_02_t = JPEGNode(mm_25_02, [], None,mm_25_02_x, mm_25_02_y, mm_25_w, mm_25_h)
+mm_8_00_t = JPEGNode(mm_8_00, [mm_25_00_t, mm_25_01_t, mm_25_02_t], None, 0, 0, mm_8_w, mm_8_h)
 
-mm_25_00_t = JPEGNode(mm_25_00, [], mm_25_00_x, mm_25_00_y, mm_25_w, mm_25_h)
-mm_25_01_t = JPEGNode(mm_25_01, [], mm_25_01_x, mm_25_01_y, mm_25_w, mm_25_h)
-mm_25_02_t = JPEGNode(mm_25_02, [], mm_25_02_x, mm_25_02_y, mm_25_w, mm_25_h)
-m_8_00_t = JPEGNode(mm_8_00, [mm_25_00_t, mm_25_01_t, mm_25_02_t], 0, 0, mm_8_w, mm_8_h)
+mm_25_00_t.setMom(mm_8_00_t)
+mm_25_01_t.setMom(mm_8_00_t)
+mm_25_02_t.setMom(mm_8_00_t)
 
-nav = JPEGTreeNavigator(m_8_00_t)
+nav = JPEGTreeNavigator(mm_8_00_t)
 curr_img = mm_8_00.copy()
 #curr_node = m_8_00_t
 

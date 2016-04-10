@@ -29,6 +29,7 @@ mm_25_02_y = 330 * 2
 
 # TODO: add a "name" attribute to the image so it can print itself's name and the navigator can print out this information
 
+# TODO; fix the bug of not setting the parent node none when back in 8 mm 
 class JPEGTreeNavigator: 
     def f(self):
         return 'hello world!'
@@ -37,6 +38,11 @@ class JPEGTreeNavigator:
         self.curr_node = starting_node
         self.prev_node = None
         self.in_layer2 = False
+        
+    def printCurrNodeInfo(self):
+        curr_node_name = self.curr_node.getName() if self.curr_node else "none"
+        prev_node_name = self.prev_node.getName() if self.prev_node else "none"
+        print "curr node: " + curr_node_name + "; parent node: " + prev_node_name
         
     def generateView(self, x, y, curr_xlim, curr_ylim):
     # responsible for triversing the tree
@@ -137,7 +143,7 @@ class JPEGNode:
         return 'hello world'
         
      
-    def __init__(self, data, children, mom, upper_x, upper_y, w, h): 
+    def __init__(self, data, children, mom, upper_x, upper_y, w, h, name): 
         self.data = data 
         self.children = children 
         self.mom = mom
@@ -147,12 +153,16 @@ class JPEGNode:
         self.h = h   
         self.xlim = data.shape[1]
         self.ylim = data.shape[0]
+        self.name = name
 
     def setMom(self, mom):
         self.mom = mom
      
     def getMom(self):
         return self.mom
+        
+    def getName(self):
+        return self.name
      
     def getChild(self, index):
     # later change this by having a map between x, y and child id 
@@ -172,10 +182,10 @@ class JPEGNode:
    #         img =  self.data[curr_ylim[0]:curr_ylim[1], curr_xlim[0]:curr_xlim[1]]
    #     return img
         
-mm_25_00_t = JPEGNode(mm_25_00, [], None, mm_25_00_x, mm_25_00_y, mm_25_w, mm_25_h)
-mm_25_01_t = JPEGNode(mm_25_01, [], None, mm_25_01_x, mm_25_01_y, mm_25_w, mm_25_h)
-mm_25_02_t = JPEGNode(mm_25_02, [], None,mm_25_02_x, mm_25_02_y, mm_25_w, mm_25_h)
-mm_8_00_t = JPEGNode(mm_8_00, [mm_25_00_t, mm_25_01_t, mm_25_02_t], None, 0, 0, mm_8_w, mm_8_h)
+mm_25_00_t = JPEGNode(mm_25_00, [], None, mm_25_00_x, mm_25_00_y, mm_25_w, mm_25_h, "25 mm 00")
+mm_25_01_t = JPEGNode(mm_25_01, [], None, mm_25_01_x, mm_25_01_y, mm_25_w, mm_25_h, "25 mm 01")
+mm_25_02_t = JPEGNode(mm_25_02, [], None,mm_25_02_x, mm_25_02_y, mm_25_w, mm_25_h, "25 mm 02")
+mm_8_00_t = JPEGNode(mm_8_00, [mm_25_00_t, mm_25_01_t, mm_25_02_t], None, 0, 0, mm_8_w, mm_8_h, "8 mm 00")
 
 mm_25_00_t.setMom(mm_8_00_t)
 mm_25_01_t.setMom(mm_8_00_t)
@@ -232,6 +242,7 @@ def zoom_tree_factory(base_scale = 2.):
                     yhigh if yhigh < ylim else ylim-1] 
             if -0.1 <= ((cur_ylim[1] - cur_ylim[0]) / (cur_xlim[1] - cur_xlim[0]) - 3./4) <= 0.1: 
                 curr_img = nav.generateView(x, y, cur_xlim, cur_ylim) # current node is responsible for generating a view.
+                nav.printCurrNodeInfo()
     return zoom_fun
        
        

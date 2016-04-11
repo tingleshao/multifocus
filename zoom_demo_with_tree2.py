@@ -27,9 +27,6 @@ mm_25_02_x = 555 * 2
 mm_25_02_y = 330 * 2 
 
 
-# TODO: add a "name" attribute to the image so it can print itself's name and the navigator can print out this information
-
-# TODO; fix the bug of not setting the parent node none when back in 8 mm 
 class JPEGTreeNavigator: 
     def f(self):
         return 'hello world!'
@@ -133,6 +130,7 @@ class JPEGTreeNavigator:
         else: 
             if self.curr_node.getMom():
                 self.curr_node = self.curr_node.getMom()
+                self.prev_node = None
                 self.in_layer2 = False
             img = self.curr_node.data[curr_ylim[0]:curr_ylim[1], curr_xlim[0]:curr_xlim[1]]
         return cv2.resize(img, (1024, 768))
@@ -141,7 +139,6 @@ class JPEGTreeNavigator:
 class JPEGNode:
     def f(self): 
         return 'hello world'
-        
      
     def __init__(self, data, children, mom, upper_x, upper_y, w, h, name): 
         self.data = data 

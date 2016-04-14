@@ -7,6 +7,11 @@ NAME       := Grab_MultipleCameras
 # Installation directories for pylon
 PYLON_ROOT ?= /opt/pylon5
 
+
+CPPFLAGS = $(shell pkg-config opencv --cflags --libs)
+LDFLAGS = $(shell pkg-config opencv --cflags --libs)
+
+
 # Build tools and flags
 LD         := $(CXX)
 CPPFLAGS   := $(shell $(PYLON_ROOT)/bin/pylon-config --cflags) -DUSE_GIGE

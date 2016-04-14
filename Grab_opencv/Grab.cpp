@@ -87,7 +87,6 @@ try
                 }
         }
     }
-
 }
 
 catch (GenICam::GenericException &e)

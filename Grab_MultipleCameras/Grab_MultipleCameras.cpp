@@ -23,6 +23,14 @@
 #    include <pylon/PylonGUI.h>
 #endif
 
+
+
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/core/core.hpp"
+
+using namespace cv;
+
 // Namespace for using pylon objects.
 using namespace Pylon;
 
@@ -85,10 +93,12 @@ int main(int argc, char* argv[])
 
         // This smart pointer will receive the grab result data.
         CGrabResultPtr ptrGrabResult;
-
+        CImageFormatConverter fc;
+				fc.OutputPixelFormat = PixelType_RGB8packed;
+				CPylonImage image;
         // Grab c_countOfImagesToGrab from the cameras.
-        for( int i = 0; i < c_countOfImagesToGrab && cameras.IsGrabbing(); ++i)
-        {
+        //for( int i = 0; i < c_countOfImagesToGrab && cameras.IsGrabbing(); ++i)
+        while (cameras.IsGrabbing()) {
             cameras.RetrieveResult( 5000, ptrGrabResult, TimeoutHandling_ThrowException);
 
             // When the cameras in the array are created the camera context value
@@ -112,7 +122,25 @@ int main(int argc, char* argv[])
             cout << "SizeY: " << ptrGrabResult->GetHeight() << endl;
             const uint8_t *pImageBuffer = (uint8_t *) ptrGrabResult->GetBuffer();
             cout << "Gray value of first pixel: " << (uint32_t) pImageBuffer[0] << endl << endl;
-        }
+            
+						if (ptrGrabResult->GrabSucceeded()) {
+							  fc.Convert(image, ptrGrabResult);
+								cv_img = cv::Mat(ptrGrabResult->GetHeight(),  ptrGrabResult->GetWidth(), CV_8UC3,(uint8_t*)image.GetBuffer());
+								Size size(500, 358);
+								Mat dst;
+								resize(cv_img, dst, size);
+								if (cameraContextValue == 0) {
+									imshow("CV_Image0", dst);		
+								}  
+								else {
+									imshow("CV_Image1", dst);		
+								}
+								waitKey(1);
+                if(waitKey(30)==27){
+                      camera.StopGrabbing();
+                }
+						}
+		    }
     }
     catch (const GenericException &e)
     {

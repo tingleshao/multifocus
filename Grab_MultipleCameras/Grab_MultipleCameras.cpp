@@ -96,6 +96,8 @@ int main(int argc, char* argv[])
         CImageFormatConverter fc;
 				fc.OutputPixelFormat = PixelType_RGB8packed;
 				CPylonImage image;
+	      Mat cv_img(3840, 2748, CV_8UC3);
+				
         // Grab c_countOfImagesToGrab from the cameras.
         //for( int i = 0; i < c_countOfImagesToGrab && cameras.IsGrabbing(); ++i)
         while (cameras.IsGrabbing()) {

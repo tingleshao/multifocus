@@ -50,3 +50,4 @@ image_saved/*
 *.png
 *.ppm
 *.jpg
+*.py~

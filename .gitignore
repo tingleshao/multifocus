@@ -51,3 +51,4 @@ image_saved/*
 *.ppm
 *.jpg
 *.py~
+*~

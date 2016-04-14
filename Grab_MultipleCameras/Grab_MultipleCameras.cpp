@@ -137,7 +137,7 @@ int main(int argc, char* argv[])
 								}
 								waitKey(1);
                 if(waitKey(30)==27){
-                      camera.StopGrabbing();
+                      cameras.StopGrabbing();
                 }
 						}
 		    }

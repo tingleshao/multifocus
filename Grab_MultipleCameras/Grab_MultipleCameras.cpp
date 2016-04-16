@@ -50,7 +50,11 @@ static const uint32_t c_countOfImagesToGrab = 10;
 // provide more information about this topic.
 // The bandwidth used by a FireWire camera device can be limited by adjusting the packet size.
 
-// TODO: implement a zoom in here.
+// TODO: tree implementation 
+// TODO: map onto disk 
+// TODO: test the disk
+// 
+
 static const size_t c_maxCamerasToUse = 2;
 
 void function(int event, int x, int y, int flags, void* param) {
@@ -142,12 +146,14 @@ int main(int argc, char* argv[])
         CImageFormatConverter fc;
 				fc.OutputPixelFormat = PixelType_RGB8packed;
 				CPylonImage image;
-	Mat cv_img(3840, 2748, CV_8UC3);
+        Mat cv_img(3840, 2748, CV_8UC3);
         int curr_x_lim = 3840; 
         int curr_y_lim = 2748;
-	Mat cv_img2(curr_x_lim, curr_y_lim, CV_8UC3);
+        Mat cv_img2(curr_x_lim, curr_y_lim, CV_8UC3);
         double parameter = 1.0;	
         double scale = 1; 
+        Size size(500, 358);
+        Mat dst;
         		
         // Grab c_countOfImagesToGrab from the cameras.
         //for( int i = 0; i < c_countOfImagesToGrab && cameras.IsGrabbing(); ++i)
@@ -177,28 +183,29 @@ int main(int argc, char* argv[])
      //       cout << "Gray value of first pixel: " << (uint32_t) pImageBuffer[0] << endl << endl;
             
             if (ptrGrabResult->GrabSucceeded()) {
-		fc.Convert(image, ptrGrabResult);
-		cv_img = cv::Mat(ptrGrabResult->GetHeight(),  ptrGrabResult->GetWidth(), CV_8UC3,(uint8_t*)image.GetBuffer());
+                fc.Convert(image, ptrGrabResult);
+                cv_img = cv::Mat(ptrGrabResult->GetHeight(),  ptrGrabResult->GetWidth(), CV_8UC3,(uint8_t*)image.GetBuffer());
                 curr_x_lim = (int)((double)curr_x_lim / parameter); 
                 curr_y_lim = (int)((double)curr_y_lim / parameter);
                 parameter = 1;
+	          if (cameraContextValue == 0) {
                 cv_img2 = cv_img(Rect(0, 0, curr_x_lim, curr_y_lim));
-                Size size(500, 358);
-		Mat dst;
-		resize(cv_img2, dst, size);
-	        if (cameraContextValue == 0) {
-		    imshow("CV_Image0", dst);	
-                    cvSetMouseCallback("CV_Image0", function, &parameter);	
-		}  
-		else {
-		    imshow("CV_Image1", dst);		
-		}                
-		waitKey(1);
-                if(waitKey(30)==27) {
-                      cameras.StopGrabbing();
-                }
-	   }
-       }
+                resize(cv_img2, dst, size);
+		            imshow("CV_Image0", dst);	
+                cvSetMouseCallback("CV_Image0", function, &parameter);	
+	         	}  
+            else {
+                cv_img2 = cv_img(Rect(0, 0, curr_x_lim, curr_y_lim));
+                resize(cv_img2, dst, size);
+		            imshow("CV_Image1", dst);		
+                cvSetMouseCallback("CV_Image1", function, &parameter);	
+		        }                
+		        waitKey(1);
+            if(waitKey(30)==27) {
+                cameras.StopGrabbing();
+		        }
+	      }
+    }
     }
     catch (const GenericException &e)
     {

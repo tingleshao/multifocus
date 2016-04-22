@@ -148,11 +148,15 @@ int main(int argc, char* argv[])
         fc.OutputPixelFormat = PixelType_RGB8packed;
         CPylonImage image;
         Mat cv_img(3840, 2748, CV_8UC3);
-        int curr_x_lim0 = 3840; 
-        int curr_y_lim0 = 2748;
 
-        int curr_x_lim1 = 3840; 
-        int curr_y_lim1 = 2748;
+        int xoffset0 = 380;
+        int yoffset0 = 150;
+        int xoffset = 600;
+        int yoffset = 0;
+        int curr_x_lim0 = 3840 - xoffset0; 
+        int curr_y_lim0 = 2748 - yoffset0;
+        int curr_x_lim1 = 3840 - xoffset; 
+        int curr_y_lim1 = 2748 - yoffset;
         Mat cv_img2(curr_x_lim0, curr_y_lim0, CV_8UC3);
         double parameter0 = 1.0;
         double parameter1 = 1.0;	
@@ -160,8 +164,6 @@ int main(int argc, char* argv[])
         Size size(500, 358);
         Mat dst;
 
-        int xoffset = 438;
-        int yoffset = 277;
         		
         // Grab c_countOfImagesToGrab from the cameras.
         //for( int i = 0; i < c_countOfImagesToGrab && cameras.IsGrabbing(); ++i)
@@ -200,21 +202,23 @@ int main(int argc, char* argv[])
              
                 parameter0 = 1;
                 parameter1 = 1;
-	      if (cameraContextValue == 0) {
-                cv_img2 = cv_img(Rect(0, 0, curr_x_lim0, curr_y_lim0));
+	      if (cameraContextValue == 1) {
+                cv_img2 = cv_img(Rect(xoffset0, yoffset0, curr_x_lim0, curr_y_lim0));
                 resize(cv_img2, dst, size);
-                if (curr_x_lim0 > 1000) 
+                if (curr_x_lim0 > 2000) 
                 { 
                     imshow("CV_Image", dst);
                 } 	
                 cvSetMouseCallback("CV_Image", function, &parameter0);	
 	    }  else {
-                cv_img2 = cv_img(Rect(0, 0, curr_x_lim1, curr_y_lim1));
+                cv_img2 = cv_img(Rect(xoffset, yoffset, curr_x_lim1, curr_y_lim1));
                 resize(cv_img2, dst, size);
-                if (curr_x_lim0 <= 1000) {
+                if (curr_x_lim0 <= 2000) {
                     imshow("CV_Image", dst);
+                    cvSetMouseCallback("CV_Image", function, &parameter1);	
                 }		
-                cvSetMouseCallback("CV_Image", function, &parameter1);	
+      //          imshow("CV_Image2", dst);
+       //         cvSetMouseCallback("CV_Image", function, &parameter1);	
 	    }                
 	    waitKey(1);
             if(waitKey(30)==27) {

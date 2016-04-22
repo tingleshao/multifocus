@@ -50,10 +50,11 @@ static const uint32_t c_countOfImagesToGrab = 10;
 // provide more information about this topic.
 // The bandwidth used by a FireWire camera device can be limited by adjusting the packet size.
 
+// TODO: combine the two cameras into one 
+
 // TODO: tree implementation 
 // TODO: map onto disk 
 // TODO: test the disk
-// 
 
 static const size_t c_maxCamerasToUse = 2;
 
@@ -144,16 +145,23 @@ int main(int argc, char* argv[])
         // This smart pointer will receive the grab result data.
         CGrabResultPtr ptrGrabResult;
         CImageFormatConverter fc;
-				fc.OutputPixelFormat = PixelType_RGB8packed;
-				CPylonImage image;
+        fc.OutputPixelFormat = PixelType_RGB8packed;
+        CPylonImage image;
         Mat cv_img(3840, 2748, CV_8UC3);
-        int curr_x_lim = 3840; 
-        int curr_y_lim = 2748;
-        Mat cv_img2(curr_x_lim, curr_y_lim, CV_8UC3);
-        double parameter = 1.0;	
+        int curr_x_lim0 = 3840; 
+        int curr_y_lim0 = 2748;
+
+        int curr_x_lim1 = 3840; 
+        int curr_y_lim1 = 2748;
+        Mat cv_img2(curr_x_lim0, curr_y_lim0, CV_8UC3);
+        double parameter0 = 1.0;
+        double parameter1 = 1.0;	
         double scale = 1; 
         Size size(500, 358);
         Mat dst;
+
+        int xoffset = 438;
+        int yoffset = 277;
         		
         // Grab c_countOfImagesToGrab from the cameras.
         //for( int i = 0; i < c_countOfImagesToGrab && cameras.IsGrabbing(); ++i)
@@ -179,32 +187,40 @@ int main(int argc, char* argv[])
      //       cout << "GrabSucceeded: " << ptrGrabResult->GrabSucceeded() << endl;
      //       cout << "SizeX: " << ptrGrabResult->GetWidth() << endl;
      //       cout << "SizeY: " << ptrGrabResult->GetHeight() << endl;
-            const uint8_t *pImageBuffer = (uint8_t *) ptrGrabResult->GetBuffer();
+           const uint8_t *pImageBuffer = (uint8_t *) ptrGrabResult->GetBuffer();
      //       cout << "Gray value of first pixel: " << (uint32_t) pImageBuffer[0] << endl << endl;
             
-            if (ptrGrabResult->GrabSucceeded()) {
+           if (ptrGrabResult->GrabSucceeded()) {
                 fc.Convert(image, ptrGrabResult);
                 cv_img = cv::Mat(ptrGrabResult->GetHeight(),  ptrGrabResult->GetWidth(), CV_8UC3,(uint8_t*)image.GetBuffer());
-                curr_x_lim = (int)((double)curr_x_lim / parameter); 
-                curr_y_lim = (int)((double)curr_y_lim / parameter);
-                parameter = 1;
-	          if (cameraContextValue == 0) {
-                cv_img2 = cv_img(Rect(0, 0, curr_x_lim, curr_y_lim));
+                curr_x_lim0 = (int)((double)curr_x_lim0 / parameter0); 
+                curr_y_lim0 = (int)((double)curr_y_lim0 / parameter0);
+                curr_x_lim1 = (int)((double)curr_x_lim1 / parameter1); 
+                curr_y_lim1 = (int)((double)curr_y_lim1 / parameter1);
+             
+                parameter0 = 1;
+                parameter1 = 1;
+	      if (cameraContextValue == 0) {
+                cv_img2 = cv_img(Rect(0, 0, curr_x_lim0, curr_y_lim0));
                 resize(cv_img2, dst, size);
-		            imshow("CV_Image0", dst);	
-                cvSetMouseCallback("CV_Image0", function, &parameter);	
-	         	}  
-            else {
-                cv_img2 = cv_img(Rect(0, 0, curr_x_lim, curr_y_lim));
+                if (curr_x_lim0 > 1000) 
+                { 
+                    imshow("CV_Image", dst);
+                } 	
+                cvSetMouseCallback("CV_Image", function, &parameter0);	
+	    }  else {
+                cv_img2 = cv_img(Rect(0, 0, curr_x_lim1, curr_y_lim1));
                 resize(cv_img2, dst, size);
-		            imshow("CV_Image1", dst);		
-                cvSetMouseCallback("CV_Image1", function, &parameter);	
-		        }                
-		        waitKey(1);
+                if (curr_x_lim0 <= 1000) {
+                    imshow("CV_Image", dst);
+                }		
+                cvSetMouseCallback("CV_Image", function, &parameter1);	
+	    }                
+	    waitKey(1);
             if(waitKey(30)==27) {
                 cameras.StopGrabbing();
-		        }
-	      }
+            }
+	}
     }
     }
     catch (const GenericException &e)

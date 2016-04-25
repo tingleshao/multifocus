@@ -29,6 +29,11 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/core/core.hpp"
 
+#include "opencv2/features2d/features2d.hpp"
+#include "opencv2/nonfree/nonfree.hpp"
+#include "opencv2/calib3d/calib3d.hpp"
+
+ 
 using namespace cv;
 
 // Namespace for using pylon objects.
@@ -50,13 +55,7 @@ static const uint32_t c_countOfImagesToGrab = 10;
 // provide more information about this topic.
 // The bandwidth used by a FireWire camera device can be limited by adjusting the packet size.
 
-
-// TODO: tree implementation 
-// TODO: map onto disk 
-// TODO: test the disk
-
 static const size_t c_maxCamerasToUse = 2;
-
 
 class CameraNode {
     
@@ -75,6 +74,75 @@ class CameraNode {
     void setData(); 
     Mat getData(void);
 };
+
+
+int registerImg(Mat img1, Mat img2) {
+    Mat gray_img1;
+    Mat gray_img2;
+    cvtColor(img1, gray_img1, CV_RGB2GRAY);
+    cvtColor(img2, gray_img2, CV_RGB2GRAY);
+    if (!gray_img1.data || !gray_img2.data) {
+        cout << "error getting images" << endl; 
+        return -1;
+    }
+    it minHessian = 400;
+    
+    SurfFeatureDetector detector(minHessian); 
+    std::vector< KeyPoint > keypoints_object, keypoints_scene;
+      
+    detector.detect(gray_img1, keypoints_object);
+    detector.detect(gray_img2, keypoints_scene);
+    
+    SurfDescriptorExtractor extractor;
+    Mat descriptors_object, descriptors_scene; 
+     
+    extractor.compute(gray_img1, keypoints_object, descriptors_object); 
+    extractor.compute(gray_img2, keypoints_scene, descriptors_scene);
+   
+    FlannBasedMatcher matcher;
+    vector< DMatch > matches;
+    matcher.match(descriptors_object, descriptors_scene, matches); 
+ 
+    double max_dist = 0; 
+    double min_dsit = 100;
+    
+    for (int i = 0; i < descrptors_object.rows; i++) {
+        double dist = matches[i].distance; 
+        if (dist < min_dist) 
+             min_dist = dist;
+        if (dist > max_dist) 
+             max_dist = dist;  
+    }  
+    
+    printf("--Max dist: %f \n", max_dist);
+    printf("--Min dist: %f \n", min_dist); 
+   
+    vector< DMatch > good_matches; 
+   
+    for (int i = 0; i < descriptors_object.rows; i++) {
+        if (matches[i].distance < 3 * min_dist) {
+            good_matches.push_back(matches[i]);     
+        }
+    }
+    vector<Point2f> obj;
+    vector<Point2f> scene;
+   
+    for (int i = 0; i< good_matches.size(); i++) {
+        obj.push_back(keypoints_object[good_matches[i].queryIdx].pt); 
+        scene.push_back(keypoints_scene[good_matches[i].trainIdx].pt);
+    }
+ 
+    Mat H = findHomography(obj, scene, CV_RANSAC);
+    Mat result;
+    wrapPerspective(image1, result, H, cv::Size(img1.cols + img2.cols, img1.rows));
+    Mat half(result, cv::Rect(0, 0, img2.cols, img2.rows));
+    img2.copyTo(half);
+    imshow("Result", result); 
+     
+    waitKey(0);
+    return 0;
+}
+
 
 void function(int event, int x, int y, int flags, void* param) {
 

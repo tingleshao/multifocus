@@ -60,7 +60,7 @@ static const uint32_t c_countOfImagesToGrab = 10;
 // TODO: fix the "vector not found" problem, or making a python version of align program and import the transformation parameters 
 static const size_t c_maxCamerasToUse = 2;
 
-int registerImg(Mat img1, Mat img2) {
+int registerImg(Mat img1, Mat img2, Mat& H) {
     Mat gray_img1;
     Mat gray_img2;
     cvtColor(img1, gray_img1, CV_RGB2GRAY);
@@ -71,7 +71,7 @@ int registerImg(Mat img1, Mat img2) {
     }
     int minHessian = 400;
     
-    Ptr<SURF> detector = SURF::create(minHessian); 
+    Ptr<SIFT> detector = SIFT::create(minHessian); 
     std::vector< KeyPoint > keypoints_object, keypoints_scene;
 
     
@@ -88,8 +88,10 @@ int registerImg(Mat img1, Mat img2) {
     
     //FlannBasedMatcher matcher;
     std::vector< DMatch > matches;
+    Mat img_matches, img_matches_small;
+    Size size(1000, 358);
     matcher.match(descriptors_object, descriptors_scene, matches); 
- 
+
     double max_dist = 0; 
     double min_dist = 100;
     
@@ -111,6 +113,11 @@ int registerImg(Mat img1, Mat img2) {
             good_matches.push_back(matches[i]);     
         }
     }
+    drawMatches(gray_img1, keypoints_object, gray_img2, keypoints_scene, good_matches, img_matches);
+    resize(img_matches, img_matches_small, size);
+
+    imshow("Matches", img_matches_small);    
+
     std::vector<Point2f> obj;
     std::vector<Point2f> scene;
    
@@ -118,17 +125,17 @@ int registerImg(Mat img1, Mat img2) {
         obj.push_back(keypoints_object[good_matches[i].queryIdx].pt); 
         scene.push_back(keypoints_scene[good_matches[i].trainIdx].pt);
     }
- 
-    Mat H = findHomography(obj, scene, CV_RANSAC);
+
+    H = findHomography(obj, scene, CV_RANSAC);
     Mat result, small_result;
     warpPerspective(gray_img1, result, H, cv::Size(gray_img1.cols + gray_img2.cols, gray_img1.rows));
     Mat half(result, cv::Rect(0, 0, img2.cols, img2.rows));
     gray_img2.copyTo(half);   
-    Size size(500, 358);
+
     resize(result, small_result, size);
     imshow("Result", small_result); 
      
-    waitKey(0);
+//    waitKey(0);
     return 0;
 }
 
@@ -231,6 +238,8 @@ int main(int argc, char* argv[])
         Mat dst;
         int is_grabbed0 = 0;
         int is_grabbed1 = 0;
+        Mat H;
+        Mat result, small_result;
 
         // Grab c_countOfImagesToGrab from the cameras.
         //for( int i = 0; i < c_countOfImagesToGrab && cameras.IsGrabbing(); ++i)
@@ -264,7 +273,7 @@ int main(int argc, char* argv[])
 	       if (cameraContextValue == 1) {
        //         cv_img2 = cv_img(Rect(xoffset0, yoffset0, curr_x_lim0, curr_y_lim0));
                    cv_img1 = cv_img.clone();
-                   resize(cv_img, dst, size);
+                   resize(cv_img1, dst, size);
       //          if (curr_x_lim0 > 2000) 
       //          { 
                    imshow("CV_Image1", dst);
@@ -285,14 +294,64 @@ int main(int argc, char* argv[])
                    is_grabbed0 = 1;	
 	       }                
 	       waitKey(1);
+          //     if (waitKey(30)==27) {
+
+      //         }
+	   }
+       }
+                 //  cameras.StopGrabbing();
+   cout << "register img..." << endl;
+   registerImg(cv_img0, cv_img1, H);
+    
+    while (cameras.IsGrabbing() ) {
+        //    cout << "here" << endl;
+            cameras.RetrieveResult( 5000, ptrGrabResult, TimeoutHandling_ThrowException);
+
+            // When the cameras in the array are created the camera context value
+            // is set to the index of the camera in the array.
+            // The camera context is a user settable value.
+            // This value is attached to each grab result and can be used
+            // to determine the camera that produced the grab result.
+            intptr_t cameraContextValue = ptrGrabResult->GetCameraContext();
+
+#ifdef PYLON_WIN_BUILD
+            // Show the image acquired by each camera in the window related to each camera.
+            Pylon::DisplayImage(cameraContextValue, ptrGrabResult);
+#endif
+           const uint8_t *pImageBuffer = (uint8_t *) ptrGrabResult->GetBuffer();
+            
+           if (ptrGrabResult->GrabSucceeded()) {
+               fc.Convert(image, ptrGrabResult);
+               cv_img = cv::Mat(ptrGrabResult->GetHeight(),  ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t*)image.GetBuffer());
+
+	       if (cameraContextValue == 1) {
+                   cv_img1 = cv_img.clone();
+           //        resize(cv_img1, dst, size);
+           //        imshow("CV_Image", dst);
+	       } else {
+                   cv_img0 = cv_img.clone();
+           //        resize(cv_img0, dst, size);
+         //          imshow("CV_Image", dst);
+	       }    
+
+
+
+
+
+               warpPerspective(cv_img0, result, H, cv::Size(cv_img0.cols + cv_img1.cols, cv_img0.rows));
+               Mat half(result, cv::Rect(0, 0, cv_img1.cols, cv_img1.rows));
+               cv_img1.copyTo(half);   
+
+               resize(result, small_result, Size(1000,358));
+               imshow("Result1", small_result); 
+          
+	       waitKey(1);
                if (waitKey(30)==27) {
                    cameras.StopGrabbing();
                }
 	   }
        }
-
-   cout << "register img..." << endl;
-   registerImg(cv_img0, cv_img1);
+    
    }
    catch (const GenericException &e)  {
         // Error handling

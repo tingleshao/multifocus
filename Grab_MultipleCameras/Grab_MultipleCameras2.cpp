@@ -59,7 +59,7 @@ static const uint32_t c_countOfImagesToGrab = 10;
 // TODO: tree implementation 
 // TODO: map onto disk 
 // TODO: test the disk
-
+#include <vector>
 static const size_t c_maxCamerasToUse = 2;
 
 

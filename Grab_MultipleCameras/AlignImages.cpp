@@ -24,15 +24,15 @@
 #endif
 
 
-
-#include "opencv2/highgui/highgui.hpp"
+#include <stdio.h>
+#include <iostream>
+#include "opencv2/highgui.hpp"
+#include "opencv2/features2d.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/core/core.hpp"
+#include "opencv2/core.hpp"
 
-#include "opencv2/features2d/features2d.hpp"
-#include "opencv2/nonfree/nonfree.hpp"
+#include "opencv2/xfeatures2d.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
-
  
 using namespace cv;
 
@@ -41,6 +41,8 @@ using namespace Pylon;
 
 // Namespace for using cout.
 using namespace std;
+//using namespace xfeatures2d;
+using namespace cv::xfeatures2d;
 
 // Number of images to be grabbed.
 static const uint32_t c_countOfImagesToGrab = 10;
@@ -55,26 +57,8 @@ static const uint32_t c_countOfImagesToGrab = 10;
 // provide more information about this topic.
 // The bandwidth used by a FireWire camera device can be limited by adjusting the packet size.
 
+// TODO: fix the "vector not found" problem, or making a python version of align program and import the transformation parameters 
 static const size_t c_maxCamerasToUse = 2;
-
-class CameraNode {
-    
-    Mat data;
-    vector<CameraNode> children;
-    int upper_x;
-    int upper_y;
-    int w;
-    int h;
-    int xlim;
-    int ylim;
-    int name;
-    CameraNode mom;
-  
-   public:
-    void setData(); 
-    Mat getData(void);
-};
-
 
 int registerImg(Mat img1, Mat img2) {
     Mat gray_img1;
@@ -85,28 +69,31 @@ int registerImg(Mat img1, Mat img2) {
         cout << "error getting images" << endl; 
         return -1;
     }
-    it minHessian = 400;
+    int minHessian = 400;
     
-    SurfFeatureDetector detector(minHessian); 
+    Ptr<SURF> detector = SURF::create(minHessian); 
     std::vector< KeyPoint > keypoints_object, keypoints_scene;
-      
-    detector.detect(gray_img1, keypoints_object);
-    detector.detect(gray_img2, keypoints_scene);
+
     
-    SurfDescriptorExtractor extractor;
+    detector->detect(gray_img1, keypoints_object);
+    detector->detect(gray_img2, keypoints_scene);
+    
+    //SurfDescriptorExtractor extractor;
+
     Mat descriptors_object, descriptors_scene; 
-     
-    extractor.compute(gray_img1, keypoints_object, descriptors_object); 
-    extractor.compute(gray_img2, keypoints_scene, descriptors_scene);
+    detector->compute(gray_img1, keypoints_object, descriptors_object); 
+    detector->compute(gray_img2, keypoints_scene, descriptors_scene);
    
-    FlannBasedMatcher matcher;
-    vector< DMatch > matches;
+    BFMatcher matcher(NORM_L2);
+    
+    //FlannBasedMatcher matcher;
+    std::vector< DMatch > matches;
     matcher.match(descriptors_object, descriptors_scene, matches); 
  
     double max_dist = 0; 
-    double min_dsit = 100;
+    double min_dist = 100;
     
-    for (int i = 0; i < descrptors_object.rows; i++) {
+    for (int i = 0; i < descriptors_object.rows; i++) {
         double dist = matches[i].distance; 
         if (dist < min_dist) 
              min_dist = dist;
@@ -117,15 +104,15 @@ int registerImg(Mat img1, Mat img2) {
     printf("--Max dist: %f \n", max_dist);
     printf("--Min dist: %f \n", min_dist); 
    
-    vector< DMatch > good_matches; 
+    std::vector< DMatch > good_matches; 
    
     for (int i = 0; i < descriptors_object.rows; i++) {
         if (matches[i].distance < 3 * min_dist) {
             good_matches.push_back(matches[i]);     
         }
     }
-    vector<Point2f> obj;
-    vector<Point2f> scene;
+    std::vector<Point2f> obj;
+    std::vector<Point2f> scene;
    
     for (int i = 0; i< good_matches.size(); i++) {
         obj.push_back(keypoints_object[good_matches[i].queryIdx].pt); 
@@ -133,11 +120,13 @@ int registerImg(Mat img1, Mat img2) {
     }
  
     Mat H = findHomography(obj, scene, CV_RANSAC);
-    Mat result;
-    wrapPerspective(image1, result, H, cv::Size(img1.cols + img2.cols, img1.rows));
+    Mat result, small_result;
+    warpPerspective(gray_img1, result, H, cv::Size(gray_img1.cols + gray_img2.cols, gray_img1.rows));
     Mat half(result, cv::Rect(0, 0, img2.cols, img2.rows));
-    img2.copyTo(half);
-    imshow("Result", result); 
+    gray_img2.copyTo(half);   
+    Size size(500, 358);
+    resize(result, small_result, size);
+    imshow("Result", small_result); 
      
     waitKey(0);
     return 0;
@@ -146,16 +135,6 @@ int registerImg(Mat img1, Mat img2) {
 
 void function(int event, int x, int y, int flags, void* param) {
 
-//     switch (event) {
-//          case CV_EVENT_LBUTTONDOWN:
-//              if (flags & CV_EVENT_FLAG_CTRLKEY) {
- //                 printf("Left button clicked in corrdinates %d, %d with CTRL\n", x, y);
- //             }
- //             else { 
- //                 printf("Left button clicked in coordinates %d, %d\n", x, y);  
- //             }
- //             break;
- //    }
      if  ( event == EVENT_LBUTTONDOWN )
      {     
           if (*(double*)param < (double)50) { 
@@ -187,7 +166,6 @@ void function(int event, int x, int y, int flags, void* param) {
 }
 
 
-
 int main(int argc, char* argv[])
 {
     // The exit code of the sample application.
@@ -212,8 +190,7 @@ int main(int argc, char* argv[])
         CInstantCameraArray cameras( min( devices.size(), c_maxCamerasToUse));
 
         // Create and attach all Pylon Devices.
-        for ( size_t i = 0; i < cameras.GetSize(); ++i)
-        {
+        for ( size_t i = 0; i < cameras.GetSize(); ++i) {
             cameras[ i ].Attach( tlFactory.CreateDevice( devices[ i ]));
 
             // Print the model name of the camera.
@@ -234,6 +211,9 @@ int main(int argc, char* argv[])
         fc.OutputPixelFormat = PixelType_RGB8packed;
         CPylonImage image;
         Mat cv_img(3840, 2748, CV_8UC3);
+        Mat cv_img0(3840, 2748, CV_8UC3);
+        Mat cv_img1(3840, 2748, CV_8UC3);
+
 
         int xoffset0 = 380;
         int yoffset0 = 150;
@@ -249,11 +229,12 @@ int main(int argc, char* argv[])
         double scale = 1; 
         Size size(500, 358);
         Mat dst;
+        int is_grabbed0 = 0;
+        int is_grabbed1 = 0;
 
-        		
         // Grab c_countOfImagesToGrab from the cameras.
         //for( int i = 0; i < c_countOfImagesToGrab && cameras.IsGrabbing(); ++i)
-        while (cameras.IsGrabbing()) {
+        while (cameras.IsGrabbing() && (!is_grabbed0 || !is_grabbed1)) {
             cameras.RetrieveResult( 5000, ptrGrabResult, TimeoutHandling_ThrowException);
 
             // When the cameras in the array are created the camera context value
@@ -268,65 +249,63 @@ int main(int argc, char* argv[])
             Pylon::DisplayImage(cameraContextValue, ptrGrabResult);
 #endif
 
-            // Print the index and the model name of the camera.
-     //       cout << "Camera " <<  cameraContextValue << ": " << cameras[ cameraContextValue ].GetDeviceInfo().GetModelName() << endl;
-
-            // Now, the image data can be processed.
-     //       cout << "GrabSucceeded: " << ptrGrabResult->GrabSucceeded() << endl;
-     //       cout << "SizeX: " << ptrGrabResult->GetWidth() << endl;
-     //       cout << "SizeY: " << ptrGrabResult->GetHeight() << endl;
            const uint8_t *pImageBuffer = (uint8_t *) ptrGrabResult->GetBuffer();
-     //       cout << "Gray value of first pixel: " << (uint32_t) pImageBuffer[0] << endl << endl;
             
            if (ptrGrabResult->GrabSucceeded()) {
-                fc.Convert(image, ptrGrabResult);
-                cv_img = cv::Mat(ptrGrabResult->GetHeight(),  ptrGrabResult->GetWidth(), CV_8UC3,(uint8_t*)image.GetBuffer());
-                curr_x_lim0 = (int)((double)curr_x_lim0 / parameter0); 
-                curr_y_lim0 = (int)((double)curr_y_lim0 / parameter0);
-                curr_x_lim1 = (int)((double)curr_x_lim1 / parameter1); 
-                curr_y_lim1 = (int)((double)curr_y_lim1 / parameter1);
+               fc.Convert(image, ptrGrabResult);
+               cv_img = cv::Mat(ptrGrabResult->GetHeight(),  ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t*)image.GetBuffer());
+  //              curr_x_lim0 = (int)((double)curr_x_lim0 / parameter0); 
+ //               curr_y_lim0 = (int)((double)curr_y_lim0 / parameter0);
+   //             curr_x_lim1 = (int)((double)curr_x_lim1 / parameter1); 
+   //             curr_y_lim1 = (int)((double)curr_y_lim1 / parameter1);
              
-                parameter0 = 1;
-                parameter1 = 1;
-	      if (cameraContextValue == 1) {
-                cv_img2 = cv_img(Rect(xoffset0, yoffset0, curr_x_lim0, curr_y_lim0));
-                resize(cv_img2, dst, size);
-                if (curr_x_lim0 > 2000) 
-                { 
-                    imshow("CV_Image", dst);
-                } 	
-                cvSetMouseCallback("CV_Image", function, &parameter0);	
-	    }  else {
-                cv_img2 = cv_img(Rect(xoffset, yoffset, curr_x_lim1, curr_y_lim1));
-                resize(cv_img2, dst, size);
-                if (curr_x_lim0 <= 2000) {
-                    imshow("CV_Image", dst);
-                    cvSetMouseCallback("CV_Image", function, &parameter1);	
-                }		
+    //            parameter0 = 1;
+    //            parameter1 = 1;
+	       if (cameraContextValue == 1) {
+       //         cv_img2 = cv_img(Rect(xoffset0, yoffset0, curr_x_lim0, curr_y_lim0));
+                   cv_img1 = cv_img.clone();
+                   resize(cv_img, dst, size);
+      //          if (curr_x_lim0 > 2000) 
+      //          { 
+                   imshow("CV_Image1", dst);
+         //       } 	
+       //         cvSetMouseCallback("CV_Image", function, &parameter0);	
+                   is_grabbed1 = 1;
+	       } else {
+                 
+        //        cv_img0 = cv_img(Rect(xoffset, yoffset, curr_x_lim1, curr_y_lim1));
+                   cv_img0 = cv_img.clone();
+                   resize(cv_img0, dst, size);
+   //             if (curr_x_lim0 <= 2000) {
+                   imshow("CV_Image0", dst);
+    //                cvSetMouseCallback("CV_Image", function, &parameter1);	
+    //            }		
       //          imshow("CV_Image2", dst);
-       //         cvSetMouseCallback("CV_Image", function, &parameter1);	
-	    }                
-	    waitKey(1);
-            if(waitKey(30)==27) {
-                cameras.StopGrabbing();
-            }
-	}
-    }
-    }
-    catch (const GenericException &e)
-    {
+       //         cvSetMouseCallback("CV_Image", function, &parameter1);
+                   is_grabbed0 = 1;	
+	       }                
+	       waitKey(1);
+               if (waitKey(30)==27) {
+                   cameras.StopGrabbing();
+               }
+	   }
+       }
+
+   cout << "register img..." << endl;
+   registerImg(cv_img0, cv_img1);
+   }
+   catch (const GenericException &e)  {
         // Error handling
-        cerr << "An exception occurred." << endl
-        << e.GetDescription() << endl;
-        exitCode = 1;
-    }
-
+       cerr << "An exception occurred." << endl
+       << e.GetDescription() << endl;
+       exitCode = 1;
+   }
+    
+   
     // Comment the following two lines to disable waiting on exit.
-    cerr << endl << "Press Enter to exit." << endl;
-    while( cin.get() != '\n');
-
+   cerr << endl << "Press Enter to exit." << endl;
+   while( cin.get() != '\n');
     // Releases all pylon resources. 
-    PylonTerminate(); 
-
-    return exitCode;
+   PylonTerminate(); 
+   return exitCode;
 }

@@ -69,7 +69,7 @@ class CameraNode {
     int xlim;
     int ylim;
     int name;
-    CameraNode mom;
+  //  CameraNode mom;
   
    public:
     void setData(); 

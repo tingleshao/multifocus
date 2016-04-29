@@ -57,7 +57,7 @@ static const uint32_t c_countOfImagesToGrab = 10;
 // provide more information about this topic.
 // The bandwidth used by a FireWire camera device can be limited by adjusting the packet size.
 
-// TODO: fix the "vector not found" problem, or making a python version of align program and import the transformation parameters 
+
 static const size_t c_maxCamerasToUse = 2;
 
 int registerImg(Mat img1, Mat img2, Mat& H) {
@@ -135,7 +135,6 @@ int registerImg(Mat img1, Mat img2, Mat& H) {
     resize(result, small_result, size);
     imshow("Result", small_result); 
      
-//    waitKey(0);
     return 0;
 }
 

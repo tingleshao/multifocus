@@ -34,6 +34,7 @@
 #include "opencv2/xfeatures2d.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
  
+
 using namespace cv;
 
 // Namespace for using pylon objects.
@@ -57,7 +58,7 @@ static const uint32_t c_countOfImagesToGrab = 10;
 // provide more information about this topic.
 // The bandwidth used by a FireWire camera device can be limited by adjusting the packet size.
 
-// TODO: fix the "vector not found" problem, or making a python version of align program and import the transformation parameters 
+
 static const size_t c_maxCamerasToUse = 2;
 
 int registerImg(Mat img1, Mat img2, Mat& H) {
@@ -135,10 +136,88 @@ int registerImg(Mat img1, Mat img2, Mat& H) {
     resize(result, small_result, size);
     imshow("Result", small_result); 
      
-//    waitKey(0);
     return 0;
 }
 
+
+
+int displayRegister(Mat img1, Mat img2, Mat H) {
+    Mat gray_img1;
+    Mat gray_img2;
+    cvtColor(img1, gray_img1, CV_RGB2GRAY);
+    cvtColor(img2, gray_img2, CV_RGB2GRAY);
+    if (!gray_img1.data || !gray_img2.data) {
+        cout << "error getting images" << endl; 
+        return -1;
+    }
+ //   int minHessian = 400;
+    
+ //   Ptr<SIFT> detector = SIFT::create(minHessian); 
+ //   std::vector< KeyPoint > keypoints_object, keypoints_scene;
+
+    
+  //  detector->detect(gray_img1, keypoints_object);
+  //  detector->detect(gray_img2, keypoints_scene);
+    
+    //SurfDescriptorExtractor extractor;
+
+  //  Mat descriptors_object, descriptors_scene; 
+  //  detector->compute(gray_img1, keypoints_object, descriptors_object); 
+  //  detector->compute(gray_img2, keypoints_scene, descriptors_scene);
+   
+   // BFMatcher matcher(NORM_L2);
+    
+    //FlannBasedMatcher matcher;
+   // std::vector< DMatch > matches;
+  //  Mat img_matches, img_matches_small;
+    Size size(1000, 358);
+  //  matcher.match(descriptors_object, descriptors_scene, matches); 
+
+  //  double max_dist = 0; 
+  //  double min_dist = 100;
+    
+  //  for (int i = 0; i < descriptors_object.rows; i++) {
+  //      double dist = matches[i].distance; 
+  //      if (dist < min_dist) 
+  //           min_dist = dist;
+  //      if (dist > max_dist) 
+  //           max_dist = dist;  
+ //   }  
+ //   
+  //  printf("--Max dist: %f \n", max_dist);
+  //  printf("--Min dist: %f \n", min_dist); 
+   
+  //  std::vector< DMatch > good_matches; 
+   
+  //  for (int i = 0; i < descriptors_object.rows; i++) {
+  //      if (matches[i].distance < 3 * min_dist) {
+  //          good_matches.push_back(matches[i]);     
+  //      }
+   // }
+   // drawMatches(gray_img1, keypoints_object, gray_img2, keypoints_scene, good_matches, img_matches);
+   // resize(img_matches, img_matches_small, size);
+
+   // imshow("Matches", img_matches_small);    
+
+ //   std::vector<Point2f> obj;
+   // std::vector<Point2f> scene;
+   
+ //   for (int i = 0; i< good_matches.size(); i++) {
+ //       obj.push_back(keypoints_object[good_matches[i].queryIdx].pt); 
+ //       scene.push_back(keypoints_scene[good_matches[i].trainIdx].pt);
+ //   }
+
+  //  H = findHomography(obj, scene, CV_RANSAC);
+    Mat result, small_result;
+    warpPerspective(gray_img1, result, H, cv::Size(gray_img1.cols + gray_img2.cols, gray_img1.rows));
+    Mat half(result, cv::Rect(0, 0, img2.cols, img2.rows));
+    gray_img2.copyTo(half);   
+
+    resize(result, small_result, size);
+    imshow("Result", small_result); 
+     
+    return 0;
+}
 
 void function(int event, int x, int y, int flags, void* param) {
 
@@ -222,9 +301,9 @@ int main(int argc, char* argv[])
         Mat cv_img1(3840, 2748, CV_8UC3);
 
 
-        int xoffset0 = 380;
-        int yoffset0 = 150;
-        int xoffset = 600;
+        int xoffset0 = 0;
+        int yoffset0 = 0;
+        int xoffset = 0;
         int yoffset = 0;
         int curr_x_lim0 = 3840 - xoffset0; 
         int curr_y_lim0 = 2748 - yoffset0;
@@ -235,12 +314,18 @@ int main(int argc, char* argv[])
         double parameter1 = 1.0;	
         double scale = 1; 
         Size size(500, 358);
-        Mat dst;
+        Mat dst, dst2;
         int is_grabbed0 = 0;
         int is_grabbed1 = 0;
         Mat H;
         Mat result, small_result;
-
+         int warped = 0;
+       // H Matrix 
+    //   float h[9] = {2.166108480834911, 0.01935114366896258, -1885.966612943578, -0.02435826700888677, 2.144307261477014, -1804.453259599412, -1.164516611370289e-05, 1.08281383278763e-05, 1};
+       float h[9] = {0.4585726806900106, -0.01467694694523886, 713.0394795686043, 0.004384113715707444, 0.4552645554203246, 588.0776438223321, 1.722337357853814e-06, -8.592916797868854e-06, 1};
+       H = Mat(3, 3, CV_32F, h);
+       cout << H << endl;
+        int need_register = 0;  
         // Grab c_countOfImagesToGrab from the cameras.
         //for( int i = 0; i < c_countOfImagesToGrab && cameras.IsGrabbing(); ++i)
         while (cameras.IsGrabbing() && (!is_grabbed0 || !is_grabbed1)) {
@@ -263,15 +348,9 @@ int main(int argc, char* argv[])
            if (ptrGrabResult->GrabSucceeded()) {
                fc.Convert(image, ptrGrabResult);
                cv_img = cv::Mat(ptrGrabResult->GetHeight(),  ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t*)image.GetBuffer());
-  //              curr_x_lim0 = (int)((double)curr_x_lim0 / parameter0); 
- //               curr_y_lim0 = (int)((double)curr_y_lim0 / parameter0);
-   //             curr_x_lim1 = (int)((double)curr_x_lim1 / parameter1); 
-   //             curr_y_lim1 = (int)((double)curr_y_lim1 / parameter1);
-             
-    //            parameter0 = 1;
-    //            parameter1 = 1;
+
 	       if (cameraContextValue == 1) {
-       //         cv_img2 = cv_img(Rect(xoffset0, yoffset0, curr_x_lim0, curr_y_lim0));
+
                    cv_img1 = cv_img.clone();
                    resize(cv_img1, dst, size);
       //          if (curr_x_lim0 > 2000) 
@@ -282,7 +361,7 @@ int main(int argc, char* argv[])
                    is_grabbed1 = 1;
 	       } else {
                  
-        //        cv_img0 = cv_img(Rect(xoffset, yoffset, curr_x_lim1, curr_y_lim1));
+
                    cv_img0 = cv_img.clone();
                    resize(cv_img0, dst, size);
    //             if (curr_x_lim0 <= 2000) {
@@ -299,12 +378,19 @@ int main(int argc, char* argv[])
       //         }
 	   }
        }
-                 //  cameras.StopGrabbing();
+   
+   //  cameras.StopGrabbing();
+   if (need_register) { 
    cout << "register img..." << endl;
-   registerImg(cv_img0, cv_img1, H);
-    
+    registerImg(cv_img1, cv_img0, H);
+    cout << H << endl;
+   } 
+    else {  
+    cout << "display register.." << endl;
+    displayRegister(cv_img1, cv_img0, H); 
+    } 
     while (cameras.IsGrabbing() ) {
-        //    cout << "here" << endl;
+  //          cout << "here" << endl;
             cameras.RetrieveResult( 5000, ptrGrabResult, TimeoutHandling_ThrowException);
 
             // When the cameras in the array are created the camera context value
@@ -323,23 +409,53 @@ int main(int argc, char* argv[])
            if (ptrGrabResult->GrabSucceeded()) {
                fc.Convert(image, ptrGrabResult);
                cv_img = cv::Mat(ptrGrabResult->GetHeight(),  ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t*)image.GetBuffer());
-
+               curr_x_lim0 = (int)((double)curr_x_lim0 / parameter0); 
+               curr_y_lim0 = (int)((double)curr_y_lim0 / parameter0);
+               curr_x_lim1 = (int)((double)curr_x_lim1 / parameter1); 
+               curr_y_lim1 = (int)((double)curr_y_lim1 / parameter1);
+             
+               parameter0 = 1;
+               parameter1 = 1;
 	       if (cameraContextValue == 1) {
-                   cv_img1 = cv_img.clone();
+                   cv_img1 = cv_img(Rect(0, 0, curr_x_lim0, curr_y_lim0));
+           //        cv_img1 = cv_img.clone();
            //        resize(cv_img1, dst, size);
            //        imshow("CV_Image", dst);
+                   if (curr_x_lim1 <= 2000) {
+                       cout << "here1" << endl;
+                     if (!warped) {
+                   warpPerspective(cv_img1, result, H, cv::Size(curr_x_lim1, curr_y_lim1));
+                       warped = 1;
+                      curr_x_lim0 = result.cols;
+                      curr_y_lim0 = result.rows;}
+                     else {
+                            result = result(Rect(0,0,curr_x_lim0, curr_y_lim0));
+                    }
+                       resize(result, dst2, Size(500, 358));
+                       cvSetMouseCallback("view", function, &parameter0);
+                       imshow("view", dst2); 	
+                   }
 	       } else {
-                   cv_img0 = cv_img.clone();
+                   cv_img0 = cv_img(Rect(0, 0, curr_x_lim1, curr_y_lim1));
+          //         cv_img0 = cv_img.clone();
            //        resize(cv_img0, dst, size);
          //          imshow("CV_Image", dst);
+
+                   if (curr_x_lim1 > 2000)  {
+                       cout << "here2" << endl;
+                       resize(cv_img0, dst2, Size(500, 358));
+              //         resize(cv_img0, dst2, Size(500,358));
+                       cvSetMouseCallback("view", function, &parameter1);
+                       imshow("view", dst2); 
+                   }
 	       }    
 
-               warpPerspective(cv_img0, result, H, cv::Size(cv_img0.cols + cv_img1.cols, cv_img0.rows));
-               Mat half(result, cv::Rect(0, 0, cv_img1.cols, cv_img1.rows));
-               cv_img1.copyTo(half);   
+        //       Mat half(result, cv::Rect(0, 0, cv_img1.cols, cv_img1.rows));
+        //       cv_img1.copyTo(half);   
 
-               resize(result, small_result, Size(1000,358));
-               imshow("Result1", small_result); 
+      //         resize(result, small_result, Size(1000,358));
+
+            //   imshow("Result1", small_result); 
           
 	       waitKey(1);
                if (waitKey(30)==27) {

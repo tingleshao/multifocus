@@ -4,7 +4,7 @@
 # The program to build
 NAME1       := Grab_MultipleCameras
 NAME2       := AlignImages
-
+NAME3       := Grab_MultipleCameras_with_register
 
 # Installation directories for pylon
 PYLON_ROOT ?= /opt/pylon5
@@ -26,7 +26,7 @@ LDLIBS     := $(shell $(PYLON_ROOT)/bin/pylon-config --libs)
 LDLIBS += `pkg-config --libs opencv`
 
 # Rules for building
-all: $(NAME1) $(NAME2)
+all: $(NAME1) $(NAME2) $(NAME3)
 
 $(NAME1): $(NAME1).o
 	$(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS)
@@ -39,6 +39,14 @@ $(NAME2): $(NAME2).o
    
 $(NAME2).o: $(NAME2).cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+
+
+$(NAME3): $(NAME3).o
+	$(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+
+$(NAME3).o: $(NAME3).cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+
 
 
 clean:

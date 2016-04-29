@@ -75,16 +75,6 @@ class CameraNode {
 };
 
 void function(int event, int x, int y, int flags, void* param) {
-//     switch (event) {
-//          case CV_EVENT_LBUTTONDOWN:
-//              if (flags & CV_EVENT_FLAG_CTRLKEY) {
- //                 printf("Left button clicked in corrdinates %d, %d with CTRL\n", x, y);
- //             }
- //             else { 
- //                 printf("Left button clicked in coordinates %d, %d\n", x, y);  
- //             }
- //             break;
- //    }
      if  ( event == EVENT_LBUTTONDOWN )
      {     
           if (*(double*)param < (double)50) { 

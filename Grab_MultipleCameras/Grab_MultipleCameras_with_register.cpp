@@ -150,64 +150,7 @@ int displayRegister(Mat img1, Mat img2, Mat H) {
         cout << "error getting images" << endl; 
         return -1;
     }
- //   int minHessian = 400;
-    
- //   Ptr<SIFT> detector = SIFT::create(minHessian); 
- //   std::vector< KeyPoint > keypoints_object, keypoints_scene;
-
-    
-  //  detector->detect(gray_img1, keypoints_object);
-  //  detector->detect(gray_img2, keypoints_scene);
-    
-    //SurfDescriptorExtractor extractor;
-
-  //  Mat descriptors_object, descriptors_scene; 
-  //  detector->compute(gray_img1, keypoints_object, descriptors_object); 
-  //  detector->compute(gray_img2, keypoints_scene, descriptors_scene);
-   
-   // BFMatcher matcher(NORM_L2);
-    
-    //FlannBasedMatcher matcher;
-   // std::vector< DMatch > matches;
-  //  Mat img_matches, img_matches_small;
     Size size(1000, 358);
-  //  matcher.match(descriptors_object, descriptors_scene, matches); 
-
-  //  double max_dist = 0; 
-  //  double min_dist = 100;
-    
-  //  for (int i = 0; i < descriptors_object.rows; i++) {
-  //      double dist = matches[i].distance; 
-  //      if (dist < min_dist) 
-  //           min_dist = dist;
-  //      if (dist > max_dist) 
-  //           max_dist = dist;  
- //   }  
- //   
-  //  printf("--Max dist: %f \n", max_dist);
-  //  printf("--Min dist: %f \n", min_dist); 
-   
-  //  std::vector< DMatch > good_matches; 
-   
-  //  for (int i = 0; i < descriptors_object.rows; i++) {
-  //      if (matches[i].distance < 3 * min_dist) {
-  //          good_matches.push_back(matches[i]);     
-  //      }
-   // }
-   // drawMatches(gray_img1, keypoints_object, gray_img2, keypoints_scene, good_matches, img_matches);
-   // resize(img_matches, img_matches_small, size);
-
-   // imshow("Matches", img_matches_small);    
-
- //   std::vector<Point2f> obj;
-   // std::vector<Point2f> scene;
-   
- //   for (int i = 0; i< good_matches.size(); i++) {
- //       obj.push_back(keypoints_object[good_matches[i].queryIdx].pt); 
- //       scene.push_back(keypoints_scene[good_matches[i].trainIdx].pt);
- //   }
-
-  //  H = findHomography(obj, scene, CV_RANSAC);
     Mat result, small_result;
     warpPerspective(gray_img1, result, H, cv::Size(gray_img1.cols + gray_img2.cols, gray_img1.rows));
     Mat half(result, cv::Rect(0, 0, img2.cols, img2.rows));
@@ -319,7 +262,8 @@ int main(int argc, char* argv[])
         int is_grabbed1 = 0;
         Mat H;
         Mat result, small_result;
-         int warped = 0;
+        int warped = 0;
+				Mat top_view;
        // H Matrix 
     //   float h[9] = {2.166108480834911, 0.01935114366896258, -1885.966612943578, -0.02435826700888677, 2.144307261477014, -1804.453259599412, -1.164516611370289e-05, 1.08281383278763e-05, 1};
        float h[9] = {0.4585726806900106, -0.01467694694523886, 713.0394795686043, 0.004384113715707444, 0.4552645554203246, 588.0776438223321, 1.722337357853814e-06, -8.592916797868854e-06, 1};
@@ -349,36 +293,20 @@ int main(int argc, char* argv[])
                fc.Convert(image, ptrGrabResult);
                cv_img = cv::Mat(ptrGrabResult->GetHeight(),  ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t*)image.GetBuffer());
 
-	       if (cameraContextValue == 1) {
-
-                   cv_img1 = cv_img.clone();
-                   resize(cv_img1, dst, size);
-      //          if (curr_x_lim0 > 2000) 
-      //          { 
-                   imshow("CV_Image1", dst);
-         //       } 	
-       //         cvSetMouseCallback("CV_Image", function, &parameter0);	
-                   is_grabbed1 = 1;
-	       } else {
-                 
-
-                   cv_img0 = cv_img.clone();
-                   resize(cv_img0, dst, size);
-   //             if (curr_x_lim0 <= 2000) {
-                   imshow("CV_Image0", dst);
-    //                cvSetMouseCallback("CV_Image", function, &parameter1);	
-    //            }		
-      //          imshow("CV_Image2", dst);
-       //         cvSetMouseCallback("CV_Image", function, &parameter1);
-                   is_grabbed0 = 1;	
-	       }                
-	       waitKey(1);
-          //     if (waitKey(30)==27) {
-
-      //         }
-	   }
-       }
-   
+	         if (cameraContextValue == 1) {
+               cv_img1 = cv_img.clone();
+               resize(cv_img1, dst, size);
+               imshow("CV_Image1", dst);
+               is_grabbed1 = 1;
+           } else {
+               cv_img0 = cv_img.clone();
+               resize(cv_img0, dst, size);
+               imshow("CV_Image0", dst);
+               is_grabbed0 = 1;	
+	         }                
+	         waitKey(1);
+	     }
+   }
    //  cameras.StopGrabbing();
    if (need_register) { 
    cout << "register img..." << endl;
@@ -392,12 +320,6 @@ int main(int argc, char* argv[])
     while (cameras.IsGrabbing() ) {
   //          cout << "here" << endl;
             cameras.RetrieveResult( 5000, ptrGrabResult, TimeoutHandling_ThrowException);
-
-            // When the cameras in the array are created the camera context value
-            // is set to the index of the camera in the array.
-            // The camera context is a user settable value.
-            // This value is attached to each grab result and can be used
-            // to determine the camera that produced the grab result.
             intptr_t cameraContextValue = ptrGrabResult->GetCameraContext();
 
 #ifdef PYLON_WIN_BUILD
@@ -424,23 +346,23 @@ int main(int argc, char* argv[])
                    if (curr_x_lim1 <= 2000) {
                        cout << "here1" << endl;
                      if (!warped) {
-                   warpPerspective(cv_img1, result, H, cv::Size(curr_x_lim1, curr_y_lim1));
+                       warpPerspective(cv_img1, result, H, cv::Size(curr_x_lim1, curr_y_lim1));
                        warped = 1;
-                      curr_x_lim0 = result.cols;
-                      curr_y_lim0 = result.rows;}
+                       curr_x_lim0 = result.cols;
+                       curr_y_lim0 = result.rows;}
                      else {
-                            result = result(Rect(0,0,curr_x_lim0, curr_y_lim0));
+                       result = result(Rect(0,0,curr_x_lim0, curr_y_lim0));
+                     }
+                     resize(result, dst2, Size(500, 358));
+                     cvSetMouseCallback("view", function, &parameter0);
+                     imshow("view", dst2); 	
                     }
-                       resize(result, dst2, Size(500, 358));
-                       cvSetMouseCallback("view", function, &parameter0);
-                       imshow("view", dst2); 	
-                   }
-	       } else {
+           } else {
                    cv_img0 = cv_img(Rect(0, 0, curr_x_lim1, curr_y_lim1));
+									 resize(cv_img0, top_view, Size(250, 179));
           //         cv_img0 = cv_img.clone();
            //        resize(cv_img0, dst, size);
          //          imshow("CV_Image", dst);
-
                    if (curr_x_lim1 > 2000)  {
                        cout << "here2" << endl;
                        resize(cv_img0, dst2, Size(500, 358));
@@ -448,20 +370,16 @@ int main(int argc, char* argv[])
                        cvSetMouseCallback("view", function, &parameter1);
                        imshow("view", dst2); 
                    }
-	       }    
-
-        //       Mat half(result, cv::Rect(0, 0, cv_img1.cols, cv_img1.rows));
-        //       cv_img1.copyTo(half);   
-
-      //         resize(result, small_result, Size(1000,358));
-
-            //   imshow("Result1", small_result); 
-          
-	       waitKey(1);
-               if (waitKey(30)==27) {
-                   cameras.StopGrabbing();
-               }
-	   }
+	               }    
+								 // show the current view rectangle
+								 rectangle(top_view, Rect (0,0,100,100), Scalar(0,255,0), 10, 8, 0);
+                 imshow("topview", top_view);
+								 
+	               waitKey(1);
+                 if (waitKey(30)==27) {
+                     cameras.StopGrabbing();
+                 }
+	          }
        }
     
    }

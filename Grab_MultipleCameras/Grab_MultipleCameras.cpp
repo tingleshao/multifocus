@@ -23,8 +23,6 @@
 #    include <pylon/PylonGUI.h>
 #endif
 
-
-
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/core/core.hpp"
@@ -53,12 +51,10 @@ static const uint32_t c_countOfImagesToGrab = 10;
 // TODO: tree implementation 
 // TODO: map onto disk 
 // TODO: test the disk
-// 
 
 static const size_t c_maxCamerasToUse = 2;
 
 void function(int event, int x, int y, int flags, void* param) {
-
 //     switch (event) {
 //          case CV_EVENT_LBUTTONDOWN:
 //              if (flags & CV_EVENT_FLAG_CTRLKEY) {
@@ -100,9 +96,7 @@ void function(int event, int x, int y, int flags, void* param) {
 }
 
 
-
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     // The exit code of the sample application.
     int exitCode = 0;
 
@@ -132,7 +126,6 @@ int main(int argc, char* argv[])
             // Print the model name of the camera.
             cout << "Using device " << cameras[ i ].GetDeviceInfo().GetModelName() << endl;
         }
-
         // Starts grabbing for all cameras starting with index 0. The grabbing
         // is started for one camera after the other. That's why the images of all
         // cameras are not taken at the same time.
@@ -167,11 +160,10 @@ int main(int argc, char* argv[])
             // to determine the camera that produced the grab result.
             intptr_t cameraContextValue = ptrGrabResult->GetCameraContext();
 
-#ifdef PYLON_WIN_BUILD
+         #ifdef PYLON_WIN_BUILD
             // Show the image acquired by each camera in the window related to each camera.
             Pylon::DisplayImage(cameraContextValue, ptrGrabResult);
-#endif
-
+         #endif
             // Print the index and the model name of the camera.
      //       cout << "Camera " <<  cameraContextValue << ": " << cameras[ cameraContextValue ].GetDeviceInfo().GetModelName() << endl;
 
@@ -193,8 +185,7 @@ int main(int argc, char* argv[])
                 resize(cv_img2, dst, size);
 		            imshow("CV_Image0", dst);	
                 cvSetMouseCallback("CV_Image0", function, &parameter);	
-	         	}  
-            else {
+	         	} else {
                 cv_img2 = cv_img(Rect(0, 0, curr_x_lim, curr_y_lim));
                 resize(cv_img2, dst, size);
 		            imshow("CV_Image1", dst);		
@@ -204,23 +195,20 @@ int main(int argc, char* argv[])
             if(waitKey(30)==27) {
                 cameras.StopGrabbing();
 		        }
-	      }
+	       }
+      }
     }
-    }
-    catch (const GenericException &e)
-    {
+    catch (const GenericException &e) {
         // Error handling
         cerr << "An exception occurred." << endl
         << e.GetDescription() << endl;
         exitCode = 1;
     }
-
     // Comment the following two lines to disable waiting on exit.
     cerr << endl << "Press Enter to exit." << endl;
     while( cin.get() != '\n');
 
     // Releases all pylon resources. 
     PylonTerminate(); 
-
     return exitCode;
 }

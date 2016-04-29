@@ -41,6 +41,10 @@ class JPEGTreeNavigator:
         prev_node_name = self.prev_node.getName() if self.prev_node else "none"
         print "curr node: " + curr_node_name + "; parent node: " + prev_node_name
         
+    def imageEnhancement(self): 
+    # enhance the image when zoomed in 
+        return None
+        
     def generateView(self, x, y, curr_xlim, curr_ylim):
     # responsible for triversing the tree
         img = None

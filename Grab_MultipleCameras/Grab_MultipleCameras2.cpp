@@ -23,10 +23,17 @@
 #    include <pylon/PylonGUI.h>
 #endif
 
+
+
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/core/core.hpp"
 
+#include "opencv2/features2d/features2d.hpp"
+#include "opencv2/nonfree/nonfree.hpp"
+#include "opencv2/calib3d/calib3d.hpp"
+
+ 
 using namespace cv;
 
 // Namespace for using pylon objects.
@@ -52,7 +59,7 @@ static const uint32_t c_countOfImagesToGrab = 10;
 // TODO: tree implementation 
 // TODO: map onto disk 
 // TODO: test the disk
-
+#include <vector>
 static const size_t c_maxCamerasToUse = 2;
 
 
@@ -67,14 +74,84 @@ class CameraNode {
     int xlim;
     int ylim;
     int name;
-  //  CameraNode mom;
+    CameraNode mom;
   
    public:
     void setData(); 
     Mat getData(void);
 };
 
+
+int registerImg(Mat img1, Mat img2) {
+    Mat gray_img1;
+    Mat gray_img2;
+    cvtColor(img1, gray_img1, CV_RGB2GRAY);
+    cvtColor(img2, gray_img2, CV_RGB2GRAY);
+    if (!gray_img1.data || !gray_img2.data) {
+        cout << "error getting images" << endl; 
+        return -1;
+    }
+    it minHessian = 400;
+    
+    SurfFeatureDetector detector(minHessian); 
+    std::vector< KeyPoint > keypoints_object, keypoints_scene;
+      
+    detector.detect(gray_img1, keypoints_object);
+    detector.detect(gray_img2, keypoints_scene);
+    
+    SurfDescriptorExtractor extractor;
+    Mat descriptors_object, descriptors_scene; 
+     
+    extractor.compute(gray_img1, keypoints_object, descriptors_object); 
+    extractor.compute(gray_img2, keypoints_scene, descriptors_scene);
+   
+    FlannBasedMatcher matcher;
+    vector< DMatch > matches;
+    matcher.match(descriptors_object, descriptors_scene, matches); 
+ 
+    double max_dist = 0; 
+    double min_dsit = 100;
+    
+    for (int i = 0; i < descrptors_object.rows; i++) {
+        double dist = matches[i].distance; 
+        if (dist < min_dist) 
+             min_dist = dist;
+        if (dist > max_dist) 
+             max_dist = dist;  
+    }  
+    
+    printf("--Max dist: %f \n", max_dist);
+    printf("--Min dist: %f \n", min_dist); 
+   
+    vector< DMatch > good_matches; 
+   
+    for (int i = 0; i < descriptors_object.rows; i++) {
+        if (matches[i].distance < 3 * min_dist) {
+            good_matches.push_back(matches[i]);     
+        }
+    }
+    vector<Point2f> obj;
+    vector<Point2f> scene;
+   
+    for (int i = 0; i< good_matches.size(); i++) {
+        obj.push_back(keypoints_object[good_matches[i].queryIdx].pt); 
+        scene.push_back(keypoints_scene[good_matches[i].trainIdx].pt);
+    }
+ 
+    Mat H = findHomography(obj, scene, CV_RANSAC);
+    Mat result;
+    wrapPerspective(image1, result, H, cv::Size(img1.cols + img2.cols, img1.rows));
+    Mat half(result, cv::Rect(0, 0, img2.cols, img2.rows));
+    img2.copyTo(half);
+    imshow("Result", result); 
+     
+    waitKey(0);
+    return 0;
+}
+
+
 void function(int event, int x, int y, int flags, void* param) {
+
 //     switch (event) {
 //          case CV_EVENT_LBUTTONDOWN:
 //              if (flags & CV_EVENT_FLAG_CTRLKEY) {
@@ -116,7 +193,9 @@ void function(int event, int x, int y, int flags, void* param) {
 }
 
 
-int main(int argc, char* argv[]) {
+
+int main(int argc, char* argv[])
+{
     // The exit code of the sample application.
     int exitCode = 0;
 
@@ -146,6 +225,7 @@ int main(int argc, char* argv[]) {
             // Print the model name of the camera.
             cout << "Using device " << cameras[ i ].GetDeviceInfo().GetModelName() << endl;
         }
+
         // Starts grabbing for all cameras starting with index 0. The grabbing
         // is started for one camera after the other. That's why the images of all
         // cameras are not taken at the same time.
@@ -189,10 +269,11 @@ int main(int argc, char* argv[]) {
             // to determine the camera that produced the grab result.
             intptr_t cameraContextValue = ptrGrabResult->GetCameraContext();
 
-         #ifdef PYLON_WIN_BUILD
+#ifdef PYLON_WIN_BUILD
             // Show the image acquired by each camera in the window related to each camera.
             Pylon::DisplayImage(cameraContextValue, ptrGrabResult);
-         #endif
+#endif
+
             // Print the index and the model name of the camera.
      //       cout << "Camera " <<  cameraContextValue << ": " << cameras[ cameraContextValue ].GetDeviceInfo().GetModelName() << endl;
 
@@ -234,21 +315,24 @@ int main(int argc, char* argv[]) {
 	    waitKey(1);
             if(waitKey(30)==27) {
                 cameras.StopGrabbing();
-		        }
-	       }
-      }
+            }
+	}
     }
-    catch (const GenericException &e) {
+    }
+    catch (const GenericException &e)
+    {
         // Error handling
         cerr << "An exception occurred." << endl
         << e.GetDescription() << endl;
         exitCode = 1;
     }
+
     // Comment the following two lines to disable waiting on exit.
     cerr << endl << "Press Enter to exit." << endl;
     while( cin.get() != '\n');
 
     // Releases all pylon resources. 
     PylonTerminate(); 
+
     return exitCode;
 }

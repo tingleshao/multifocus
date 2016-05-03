@@ -128,8 +128,6 @@ int registerImg(Mat img1, Mat img2, Mat& H) {
 
  //   H = findHomography(obj, scene, CV_RANSAC);
     float h[9] = {2.212303009475737, 0.1052355283245888, -1608.991832285815, -0.004182740562189243, 2.220270433207081, -1313.276062764158, -7.90068716012464e-06, 2.964768490819248e-05, 1};
-//1.08281383278763e-05, 1};
-  //     float h[9] = {0.4585726806900106, -0.01467694694523886, 713.0394795686043, 0.004384113715707444, 0.4552645554203246, 588.0776438223321, 1.722337357853814e-06, -8.592916797868854e-06, 1};
     H = Mat(3, 3, CV_32F, h);
     cout << H << endl;
     Mat result, small_result;
@@ -267,6 +265,7 @@ int main(int argc, char* argv[])
            if (ptrGrabResult->GrabSucceeded()) {
                fc.Convert(image, ptrGrabResult);
                cv_img = cv::Mat(ptrGrabResult->GetHeight(),  ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t*)image.GetBuffer());
+               
   //              curr_x_lim0 = (int)((double)curr_x_lim0 / parameter0); 
  //               curr_y_lim0 = (int)((double)curr_y_lim0 / parameter0);
    //             curr_x_lim1 = (int)((double)curr_x_lim1 / parameter1); 
@@ -327,7 +326,17 @@ int main(int argc, char* argv[])
            if (ptrGrabResult->GrabSucceeded()) {
                fc.Convert(image, ptrGrabResult);
                cv_img = cv::Mat(ptrGrabResult->GetHeight(),  ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t*)image.GetBuffer());
+               cv::Size s = cv_img.size(); 
+     //           cout << "size: " << s;
 
+            Mat channel[3];
+            split(cv_img, channel); 
+            Mat b = channel[0];
+            channel[0] = channel[2];
+            channel[2] = b;
+            merge(channel, 3, cv_img);
+ 
+            //   cvCvtColor(cv_img, cv_img, CV_BGR2RGB);
 	       if (cameraContextValue == 1) {
                    cv_img1 = cv_img.clone();
            //        resize(cv_img1, dst, size);

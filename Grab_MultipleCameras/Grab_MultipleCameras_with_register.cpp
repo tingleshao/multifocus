@@ -60,6 +60,9 @@ static const uint32_t c_countOfImagesToGrab = 10;
 
 
 static const size_t c_maxCamerasToUse = 2;
+int xx = 0;
+int yy = 0;
+
 
 int registerImg(Mat img1, Mat img2, Mat& H) {
     Mat gray_img1;
@@ -75,7 +78,6 @@ int registerImg(Mat img1, Mat img2, Mat& H) {
     Ptr<SIFT> detector = SIFT::create(minHessian); 
     std::vector< KeyPoint > keypoints_object, keypoints_scene;
 
-    
     detector->detect(gray_img1, keypoints_object);
     detector->detect(gray_img2, keypoints_scene);
     
@@ -140,7 +142,6 @@ int registerImg(Mat img1, Mat img2, Mat& H) {
 }
 
 
-
 int displayRegister(Mat img1, Mat img2, Mat H) {
     Mat gray_img1;
     Mat gray_img2;
@@ -162,12 +163,19 @@ int displayRegister(Mat img1, Mat img2, Mat H) {
     return 0;
 }
 
-void function(int event, int x, int y, int flags, void* param) {
 
+void function(int event, int x, int y, int flags, void* param) {
+     
      if  ( event == EVENT_LBUTTONDOWN )
      {     
           if (*(double*)param < (double)50) { 
               *(double*)param = *(double*)param + 0.1;
+              cout << "x inside: " << x << endl;
+              cout << "y inside: " << y << endl;
+              *((double*)param+sizeof(double)) = (double)x;
+              *((double*)param+sizeof(double)) = (double)y;
+              xx = x;
+              yy = y;
           } 
           cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
           cout << "param: " << *(double*)param << endl;
@@ -176,22 +184,25 @@ void function(int event, int x, int y, int flags, void* param) {
      {
           if (*(double*)param >= (double)1) { 
               *(double*)param = *(double*)param - 0.1;
+              *((double*)param+sizeof(double)) = (double)x;
+              *((double*)param+sizeof(double)) = (double)y;
+              xx = x;
+              yy = y;
           }
           cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
           cout << "param: " << *(double*)param << endl;
      }
      else if  ( event == EVENT_MBUTTONDOWN )
      {
-          cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+         cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
      }
      else if (event == EVENT_MOUSEHWHEEL) {
-          cout << "mouse wheel scrolled - position (" << x << ", " << y << ")" << endl;
+         cout << "mouse wheel scrolled - position (" << x << ", " << y << ")" << endl;
      }
      else if ( event == EVENT_MOUSEMOVE )
      {
-          cout << "Mouse move over the window - position (" << x << ", " << y << ")" << endl;
+         cout << "Mouse move over the window - position (" << x << ", " << y << ")" << endl;
      }
-
 }
 
 
@@ -205,196 +216,232 @@ int main(int argc, char* argv[])
 
     try
     {
-        // Get the transport layer factory.
-        CTlFactory& tlFactory = CTlFactory::GetInstance();
+       // Get the transport layer factory.
+       CTlFactory& tlFactory = CTlFactory::GetInstance();
+       // Get all attached devices and exit application if no device is found.
+       DeviceInfoList_t devices;
+       if ( tlFactory.EnumerateDevices(devices) == 0 )
+       {
+           throw RUNTIME_EXCEPTION( "No camera present.");
+       }
 
-        // Get all attached devices and exit application if no device is found.
-        DeviceInfoList_t devices;
-        if ( tlFactory.EnumerateDevices(devices) == 0 )
-        {
-            throw RUNTIME_EXCEPTION( "No camera present.");
-        }
+       // Create an array of instant cameras for the found devices and avoid exceeding a maximum number of devices.
+       CInstantCameraArray cameras( min( devices.size(), c_maxCamerasToUse));
 
-        // Create an array of instant cameras for the found devices and avoid exceeding a maximum number of devices.
-        CInstantCameraArray cameras( min( devices.size(), c_maxCamerasToUse));
+       // Create and attach all Pylon Devices.
+       for ( size_t i = 0; i < cameras.GetSize(); ++i) {
+           cameras[ i ].Attach( tlFactory.CreateDevice( devices[ i ]));
 
-        // Create and attach all Pylon Devices.
-        for ( size_t i = 0; i < cameras.GetSize(); ++i) {
-            cameras[ i ].Attach( tlFactory.CreateDevice( devices[ i ]));
+           // Print the model name of the camera.
+           cout << "Using device " << cameras[ i ].GetDeviceInfo().GetModelName() << endl;
+       }
 
-            // Print the model name of the camera.
-            cout << "Using device " << cameras[ i ].GetDeviceInfo().GetModelName() << endl;
-        }
+       // Starts grabbing for all cameras starting with index 0. The grabbing
+       // is started for one camera after the other. That's why the images of all
+       // cameras are not taken at the same time.
+       // However, a hardware trigger setup can be used to cause all cameras to grab images synchronously.
+       // According to their default configuration, the cameras are
+       // set up for free-running continuous acquisition.
+       cameras.StartGrabbing();
 
-        // Starts grabbing for all cameras starting with index 0. The grabbing
-        // is started for one camera after the other. That's why the images of all
-        // cameras are not taken at the same time.
-        // However, a hardware trigger setup can be used to cause all cameras to grab images synchronously.
-        // According to their default configuration, the cameras are
-        // set up for free-running continuous acquisition.
-        cameras.StartGrabbing();
+       // This smart pointer will receive the grab result data.
+       CGrabResultPtr ptrGrabResult;
+       CImageFormatConverter fc;
+       fc.OutputPixelFormat = PixelType_RGB8packed;
+       CPylonImage image;
+       Mat cv_img(3840, 2748, CV_8UC3);
+       Mat cv_img0(3840, 2748, CV_8UC3);
+       Mat cv_img1(3840, 2748, CV_8UC3);
 
-        // This smart pointer will receive the grab result data.
-        CGrabResultPtr ptrGrabResult;
-        CImageFormatConverter fc;
-        fc.OutputPixelFormat = PixelType_RGB8packed;
-        CPylonImage image;
-        Mat cv_img(3840, 2748, CV_8UC3);
-        Mat cv_img0(3840, 2748, CV_8UC3);
-        Mat cv_img1(3840, 2748, CV_8UC3);
+       int curr_x_lim0 = 3840;
+       int curr_y_lim0 = 2748;
+       int curr_x_lim1 = 3840; 
+       int curr_y_lim1 = 2748;
 
+       int cam0_x0 = 0; 
+       int cam0_x1 = 3840;
+       int cam0_y0 = 0;
+       int cam0_y1 = 2748;
+     
+       int cam1_x0 = 0;
+       int cam1_x1 = 3840;
+       int cam1_y0 = 0;
+       int cam1_y1 = 2748;
+       
+       Mat cv_img2(curr_x_lim0, curr_y_lim0, CV_8UC3);
+       double parameter0[3];
+       double parameter1[3];
+       parameter0[0] = 1.0;
+       parameter0[1] = 0.0;
+       parameter0[2] = 0.0;
+       parameter1[0] = 1.0;
+       parameter1[1] = 0.0;
+       parameter1[2] = 0.0;
+	
+       double scale = 1; 
+       Size size(500, 358);
+       Mat dst, dst2;
+       int is_grabbed0 = 0;
+       int is_grabbed1 = 0;
+       Mat H;
+       Mat result, small_result;
+       int warped = 0;
+       Mat top_view;
 
-        int xoffset0 = 0;
-        int yoffset0 = 0;
-        int xoffset = 0;
-        int yoffset = 0;
-        int curr_x_lim0 = 3840 - xoffset0; 
-        int curr_y_lim0 = 2748 - yoffset0;
-        int curr_x_lim1 = 3840 - xoffset; 
-        int curr_y_lim1 = 2748 - yoffset;
-        Mat cv_img2(curr_x_lim0, curr_y_lim0, CV_8UC3);
-        double parameter0 = 1.0;
-        double parameter1 = 1.0;	
-        double scale = 1; 
-        Size size(500, 358);
-        Mat dst, dst2;
-        int is_grabbed0 = 0;
-        int is_grabbed1 = 0;
-        Mat H;
-        Mat result, small_result;
-        int warped = 0;
-				Mat top_view;
+       double curr_x = 0;
+       double curr_y = 0;
        // H Matrix 
-    //   float h[9] = {2.166108480834911, 0.01935114366896258, -1885.966612943578, -0.02435826700888677, 2.144307261477014, -1804.453259599412, -1.164516611370289e-05, 1.08281383278763e-05, 1};
+       //   float h[9] = {2.166108480834911, 0.01935114366896258, -1885.966612943578, -0.02435826700888677, 2.144307261477014, -1804.453259599412, -1.164516611370289e-05, 1.08281383278763e-05, 1};
        float h[9] = {0.4585726806900106, -0.01467694694523886, 713.0394795686043, 0.004384113715707444, 0.4552645554203246, 588.0776438223321, 1.722337357853814e-06, -8.592916797868854e-06, 1};
        H = Mat(3, 3, CV_32F, h);
        cout << H << endl;
-        int need_register = 0;  
-        // Grab c_countOfImagesToGrab from the cameras.
-        //for( int i = 0; i < c_countOfImagesToGrab && cameras.IsGrabbing(); ++i)
-        while (cameras.IsGrabbing() && (!is_grabbed0 || !is_grabbed1)) {
-            cameras.RetrieveResult( 5000, ptrGrabResult, TimeoutHandling_ThrowException);
+       int need_register = 0;  
+       // Grab c_countOfImagesToGrab from the cameras.
+       //for( int i = 0; i < c_countOfImagesToGrab && cameras.IsGrabbing(); ++i)
+       while (cameras.IsGrabbing() && (!is_grabbed0 || !is_grabbed1)) {
+           cameras.RetrieveResult( 5000, ptrGrabResult, TimeoutHandling_ThrowException);
 
-            // When the cameras in the array are created the camera context value
-            // is set to the index of the camera in the array.
-            // The camera context is a user settable value.
-            // This value is attached to each grab result and can be used
-            // to determine the camera that produced the grab result.
-            intptr_t cameraContextValue = ptrGrabResult->GetCameraContext();
-
+           // When the cameras in the array are created the camera context value
+           // is set to the index of the camera in the array.
+           // The camera context is a user settable value.
+           // This value is attached to each grab result and can be used
+           // to determine the camera that produced the grab result.
+           intptr_t cameraContextValue = ptrGrabResult->GetCameraContext();
 #ifdef PYLON_WIN_BUILD
-            // Show the image acquired by each camera in the window related to each camera.
-            Pylon::DisplayImage(cameraContextValue, ptrGrabResult);
-#endif
-
-           const uint8_t *pImageBuffer = (uint8_t *) ptrGrabResult->GetBuffer();
-            
-           if (ptrGrabResult->GrabSucceeded()) {
-               fc.Convert(image, ptrGrabResult);
-               cv_img = cv::Mat(ptrGrabResult->GetHeight(),  ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t*)image.GetBuffer());
-
-	         if (cameraContextValue == 1) {
-               cv_img1 = cv_img.clone();
-               resize(cv_img1, dst, size);
-               imshow("CV_Image1", dst);
-               is_grabbed1 = 1;
-           } else {
-               cv_img0 = cv_img.clone();
-               resize(cv_img0, dst, size);
-               imshow("CV_Image0", dst);
-               is_grabbed0 = 1;	
-	         }                
-	         waitKey(1);
-	     }
-   }
-   //  cameras.StopGrabbing();
-   if (need_register) { 
-   cout << "register img..." << endl;
-    registerImg(cv_img1, cv_img0, H);
-    cout << H << endl;
-   } 
-    else {  
-    cout << "display register.." << endl;
-    displayRegister(cv_img1, cv_img0, H); 
-    } 
-    while (cameras.IsGrabbing() ) {
-  //          cout << "here" << endl;
-            cameras.RetrieveResult( 5000, ptrGrabResult, TimeoutHandling_ThrowException);
-            intptr_t cameraContextValue = ptrGrabResult->GetCameraContext();
-
-#ifdef PYLON_WIN_BUILD
-            // Show the image acquired by each camera in the window related to each camera.
-            Pylon::DisplayImage(cameraContextValue, ptrGrabResult);
+           // Show the image acquired by each camera in the window related to each camera.
+           Pylon::DisplayImage(cameraContextValue, ptrGrabResult);
 #endif
            const uint8_t *pImageBuffer = (uint8_t *) ptrGrabResult->GetBuffer();
             
            if (ptrGrabResult->GrabSucceeded()) {
                fc.Convert(image, ptrGrabResult);
                cv_img = cv::Mat(ptrGrabResult->GetHeight(),  ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t*)image.GetBuffer());
-               curr_x_lim0 = (int)((double)curr_x_lim0 / parameter0); 
-               curr_y_lim0 = (int)((double)curr_y_lim0 / parameter0);
-               curr_x_lim1 = (int)((double)curr_x_lim1 / parameter1); 
-               curr_y_lim1 = (int)((double)curr_y_lim1 / parameter1);
-             
-               parameter0 = 1;
-               parameter1 = 1;
 	       if (cameraContextValue == 1) {
-                   cv_img1 = cv_img(Rect(0, 0, curr_x_lim0, curr_y_lim0));
-           //        cv_img1 = cv_img.clone();
-           //        resize(cv_img1, dst, size);
-           //        imshow("CV_Image", dst);
-                   if (curr_x_lim1 <= 2000) {
-                       cout << "here1" << endl;
+                   cv_img1 = cv_img.clone();
+                   resize(cv_img1, dst, size);
+                   imshow("CV_Image1", dst);
+                   is_grabbed1 = 1;
+               } else {
+                   cv_img0 = cv_img.clone();
+                   resize(cv_img0, dst, size);
+                   imshow("CV_Image0", dst);
+                   is_grabbed0 = 1;	
+	       }                
+	       waitKey(1);
+           }
+       }
+       //  cameras.StopGrabbing();
+       if (need_register) { 
+           cout << "register img..." << endl;
+           registerImg(cv_img1, cv_img0, H);
+           cout << H << endl;
+       } 
+       else {  
+           cout << "display register.." << endl;
+           displayRegister(cv_img1, cv_img0, H); 
+       } 
+       while (cameras.IsGrabbing() ) {
+           cameras.RetrieveResult( 5000, ptrGrabResult, TimeoutHandling_ThrowException);
+           intptr_t cameraContextValue = ptrGrabResult->GetCameraContext();
+
+#ifdef PYLON_WIN_BUILD
+            // Show the image acquired by each camera in the window related to each camera.
+           Pylon::DisplayImage(cameraContextValue, ptrGrabResult);
+#endif
+           const uint8_t *pImageBuffer = (uint8_t *) ptrGrabResult->GetBuffer();
+           if (ptrGrabResult->GrabSucceeded()) {
+               fc.Convert(image, ptrGrabResult);
+               cv_img = cv::Mat(ptrGrabResult->GetHeight(),  ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t*)image.GetBuffer());
+         //      curr_x_lim0 = (int)((double)curr_x_lim0 / parameter0[0]); 
+         //      curr_y_lim0 = (int)((double)curr_y_lim0 / parameter0[0]);
+         //      curr_x_lim1 = (int)((double)curr_x_lim1 / parameter1[0]); 
+         //      curr_y_lim1 = (int)((double)curr_y_lim1 / parameter1[0]);
+                                 
+               cam1_x0 = (int)((double)curr_x + (((double)curr_x - cam1_x0) / parameter1[0]));
+               cam1_y0 = (int)((double)curr_y + (((double)curr_y - cam1_y0) / parameter1[0]));
+               cam1_x1 = (int)((double)curr_x + ((cam1_x1 - (double)curr_x) / parameter1[0]));
+               cam1_y1 = (int)((double)curr_y + ((cam1_y1 - (double)curr_y) / parameter1[0]));
+
+               cam0_x0 = (int)((double)curr_x + (((double)curr_x - cam0_x0) / parameter0[0]));
+               cam0_y0 = (int)((double)curr_y + (((double)curr_y - cam0_y0) / parameter0[0]));
+               cam0_x1 = (int)((double)curr_x + ((cam0_x1 - (double)curr_x) / parameter0[0]));
+               cam0_y1 = (int)((double)curr_y + ((cam0_y1 - (double)curr_y) / parameter0[0]));
+
+               parameter0[0] = 1;
+               parameter1[0] = 1;      
+               
+	       if (cameraContextValue == 1) {
+        //           cv_img1 = cv_img(Rect(cam0_x0, cam0_y0, curr_x_lim0, curr_y_lim0));
+                   cv_img1 = cv_img(Rect(cam1_x0, cam1_y0, cam1_x1, cam1_y1));
+         //        cv_img1 = cv_img.clone();
+         //        resize(cv_img1, dst, size);
+         //        imshow("CV_Image", dst);
+                   if ((cam1_x1 - cam1_x0) <= 2000) {
+   //                    cout << "here1" << endl;
                      if (!warped) {
-                       warpPerspective(cv_img1, result, H, cv::Size(curr_x_lim1, curr_y_lim1));
+                       warpPerspective(cv_img1, result, H, cv::Size(cam1_x1 - cam1_x0, cam1_y1 - cam1_y0));
                        warped = 1;
-                       curr_x_lim0 = result.cols;
-                       curr_y_lim0 = result.rows;}
+                    //   curr_x_lim0 = result.cols;
+                    //   curr_y_lim0 = result.rows;
+                     }
                      else {
-                       result = result(Rect(0,0,curr_x_lim0, curr_y_lim0));
+                       result = result(Rect(cam1_x0, cam1_y0, cam1_x1, cam1_y1));
                      }
                      resize(result, dst2, Size(500, 358));
-                     cvSetMouseCallback("view", function, &parameter0);
+                  //   cvSetMouseCallback("view", function, &parameter0);
+                     cvSetMouseCallback("view", function, &parameter1);
+                    // curr_x = parameter1[1];
+                    // curr_y = parameter1[2];  
+                     curr_x = xx; 
+                     curr_y = yy;
+                     cout << "curr x: " << curr_x << endl;
+                     cout << "curr y: " << curr_y << endl;
                      imshow("view", dst2); 	
                     }
            } else {
-                   cv_img0 = cv_img(Rect(0, 0, curr_x_lim1, curr_y_lim1));
-									 resize(cv_img0, top_view, Size(250, 179));
+                   cout << "cam:: " << endl;
+                   cout << cam0_x0 << " " << cam0_y0 << " " << cam0_x1 << " " << cam0_y1 << endl;
+                   cv_img0 = cv_img(Rect(cam0_x0, cam0_y0, cam0_x1, cam0_y1));
+                   resize(cv_img0, top_view, Size(250, 179));
           //         cv_img0 = cv_img.clone();
            //        resize(cv_img0, dst, size);
          //          imshow("CV_Image", dst);
-                   if (curr_x_lim1 > 2000)  {
-                       cout << "here2" << endl;
+                   if ((cam1_x1 - cam1_x0) > 2000)  {
+ //                      cout << "here2" << endl;
                        resize(cv_img0, dst2, Size(500, 358));
               //         resize(cv_img0, dst2, Size(500,358));
-                       cvSetMouseCallback("view", function, &parameter1);
+              //         cvSetMouseCallback("view", function, &parameter1);
+                       cvSetMouseCallback("view", function, &parameter0);
+                     //  curr_x = parameter0[1];
+                     //  curr_y = parameter0[2];
+                       curr_x = xx;
+                       curr_y = yy;
+                       cout << "curr x: " << curr_x << endl;
+                       cout << "curr y: " << curr_y << endl;
                        imshow("view", dst2); 
                    }
-	               }    
-								 // show the current view rectangle
-								 rectangle(top_view, Rect (0,0,100,100), Scalar(0,255,0), 10, 8, 0);
-                 imshow("topview", top_view);
-								 
-	               waitKey(1);
-                 if (waitKey(30)==27) {
-                     cameras.StopGrabbing();
-                 }
-	          }
+	   }    
+           // show the current view rectangle
+	   rectangle(top_view, Rect(0,0,100,100), Scalar(0,255,0), 5, 8, 0);
+           imshow("topview", top_view);
+           waitKey(1);
+           if (waitKey(30)==27) {
+                cameras.StopGrabbing();
+           }
+	  }
        }
-    
    }
    catch (const GenericException &e)  {
         // Error handling
        cerr << "An exception occurred." << endl
        << e.GetDescription() << endl;
        exitCode = 1;
-   }
-    
+   } 
    
-    // Comment the following two lines to disable waiting on exit.
+   // Comment the following two lines to disable waiting on exit.
    cerr << endl << "Press Enter to exit." << endl;
    while( cin.get() != '\n');
-    // Releases all pylon resources. 
+   // Releases all pylon resources. 
    PylonTerminate(); 
    return exitCode;
 }

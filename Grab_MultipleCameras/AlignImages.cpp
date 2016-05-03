@@ -126,7 +126,12 @@ int registerImg(Mat img1, Mat img2, Mat& H) {
         scene.push_back(keypoints_scene[good_matches[i].trainIdx].pt);
     }
 
-    H = findHomography(obj, scene, CV_RANSAC);
+ //   H = findHomography(obj, scene, CV_RANSAC);
+    float h[9] = {2.212303009475737, 0.1052355283245888, -1608.991832285815, -0.004182740562189243, 2.220270433207081, -1313.276062764158, -7.90068716012464e-06, 2.964768490819248e-05, 1};
+//1.08281383278763e-05, 1};
+  //     float h[9] = {0.4585726806900106, -0.01467694694523886, 713.0394795686043, 0.004384113715707444, 0.4552645554203246, 588.0776438223321, 1.722337357853814e-06, -8.592916797868854e-06, 1};
+    H = Mat(3, 3, CV_32F, h);
+    cout << H << endl;
     Mat result, small_result;
     warpPerspective(gray_img1, result, H, cv::Size(gray_img1.cols + gray_img2.cols, gray_img1.rows));
     Mat half(result, cv::Rect(0, 0, img2.cols, img2.rows));
@@ -299,8 +304,8 @@ int main(int argc, char* argv[])
 	   }
        }
                  //  cameras.StopGrabbing();
-   cout << "register img..." << endl;
-   registerImg(cv_img0, cv_img1, H);
+ //  cout << "register img..." << endl;
+ //  registerImg(cv_img0, cv_img1, H);
     
     while (cameras.IsGrabbing() ) {
         //    cout << "here" << endl;
@@ -336,7 +341,10 @@ int main(int argc, char* argv[])
 
 
 
-
+              float h[9] = {2.212303009475737, 0.1052355283245888, -1608.991832285815, -0.004182740562189243, 2.220270433207081, -1313.276062764158, -7.90068716012464e-06, 2.964768490819248e-05, 1};
+//1.08281383278763e-05, 1};
+  //     float h[9] = {0.4585726806900106, -0.01467694694523886, 713.0394795686043, 0.004384113715707444, 0.4552645554203246, 588.0776438223321, 1.722337357853814e-06, -8.592916797868854e-06, 1};
+                H = Mat(3, 3, CV_32F, h);
                warpPerspective(cv_img0, result, H, cv::Size(cv_img0.cols + cv_img1.cols, cv_img0.rows));
                Mat half(result, cv::Rect(0, 0, cv_img1.cols, cv_img1.rows));
                cv_img1.copyTo(half);   

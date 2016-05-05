@@ -45,7 +45,7 @@ $(NAME3): $(NAME3).o
 	$(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 $(NAME3).o: $(NAME3).cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -g -o $@ $<
 
 
 

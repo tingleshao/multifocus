@@ -280,18 +280,17 @@ int main(int argc, char* argv[])
 	
        double scale = 1; 
        Size size(500, 358);
-       Mat dst, dst2;
+       Mat dst, dst1, dst2;
        int is_grabbed0 = 0;
        int is_grabbed1 = 0;
        Mat H;
        Mat result, small_result;
        int warped = 0;
        Mat top_view;
-
+       int zoomedin = 0;
        double curr_x = 0;
        double curr_y = 0;
        // H Matrix 
-       //   float h[9] = {2.166108480834911, 0.01935114366896258, -1885.966612943578, -0.02435826700888677, 2.144307261477014, -1804.453259599412, -1.164516611370289e-05, 1.08281383278763e-05, 1};
        float h[9] = {0.4585726806900106, -0.01467694694523886, 713.0394795686043, 0.004384113715707444, 0.4552645554203246, 588.0776438223321, 1.722337357853814e-06, -8.592916797868854e-06, 1};
        H = Mat(3, 3, CV_32F, h);
        cout << H << endl;
@@ -346,7 +345,7 @@ int main(int argc, char* argv[])
 
 #ifdef PYLON_WIN_BUILD
             // Show the image acquired by each camera in the window related to each camera.
-           Pylon::DisplayImage(cameraContextValue, ptrGrabResult);
+     //      Pylon::DisplayImage(cameraContextValue, ptrGrabResult);
 #endif
            const uint8_t *pImageBuffer = (uint8_t *) ptrGrabResult->GetBuffer();
            if (ptrGrabResult->GrabSucceeded()) {
@@ -357,10 +356,10 @@ int main(int argc, char* argv[])
          //      curr_x_lim1 = (int)((double)curr_x_lim1 / parameter1[0]); 
          //      curr_y_lim1 = (int)((double)curr_y_lim1 / parameter1[0]);
                                  
-               cam1_x0 = (int)((double)curr_x + (((double)curr_x - cam1_x0) / parameter1[0]));
-               cam1_y0 = (int)((double)curr_y + (((double)curr_y - cam1_y0) / parameter1[0]));
-               cam1_x1 = (int)((double)curr_x + ((cam1_x1 - (double)curr_x) / parameter1[0]));
-               cam1_y1 = (int)((double)curr_y + ((cam1_y1 - (double)curr_y) / parameter1[0]));
+               cam1_x0 = (int)((double)curr_x + (((double)curr_x - cam1_x0) / parameter0[0]));
+               cam1_y0 = (int)((double)curr_y + (((double)curr_y - cam1_y0) / parameter0[0]));
+               cam1_x1 = (int)((double)curr_x + ((cam1_x1 - (double)curr_x) / parameter0[0]));
+               cam1_y1 = (int)((double)curr_y + ((cam1_y1 - (double)curr_y) / parameter0[0]));
 
                cam0_x0 = (int)((double)curr_x + (((double)curr_x - cam0_x0) / parameter0[0]));
                cam0_y0 = (int)((double)curr_y + (((double)curr_y - cam0_y0) / parameter0[0]));
@@ -370,7 +369,8 @@ int main(int argc, char* argv[])
                parameter0[0] = 1;
                parameter1[0] = 1;      
                
-	       if (cameraContextValue == 1) {
+	       if (cameraContextValue == 1 && zoomedin) {
+           //        cout << "here2" << endl;
         //           cv_img1 = cv_img(Rect(cam0_x0, cam0_y0, curr_x_lim0, curr_y_lim0));
                    cv_img1 = cv_img(Rect(cam1_x0, cam1_y0, cam1_x1, cam1_y1));
          //        cv_img1 = cv_img.clone();
@@ -378,31 +378,36 @@ int main(int argc, char* argv[])
          //        imshow("CV_Image", dst);
                    if ((cam1_x1 - cam1_x0) <= 2000) {
    //                    cout << "here1" << endl;
-                     if (!warped) {
-                       warpPerspective(cv_img1, result, H, cv::Size(cam1_x1 - cam1_x0, cam1_y1 - cam1_y0));
-                       warped = 1;
+                       if (!warped) {
+                           warpPerspective(cv_img1, result, H, cv::Size(cam1_x1 - cam1_x0, cam1_y1 - cam1_y0));
+                           warped = 1;
                     //   curr_x_lim0 = result.cols;
                     //   curr_y_lim0 = result.rows;
-                     }
-                     else {
-                       result = result(Rect(cam1_x0, cam1_y0, cam1_x1, cam1_y1));
-                     }
-                     resize(result, dst2, Size(500, 358));
+
+                        }
+                        else {
+                           result = result(Rect(cam1_x0, cam1_y0, cam1_x1, cam1_y1));
+                        }
+                        resize(result, dst2, Size(500, 358));
                   //   cvSetMouseCallback("view", function, &parameter0);
-                     cvSetMouseCallback("view", function, &parameter1);
+                        cvSetMouseCallback("view", function, &parameter1);
                     // curr_x = parameter1[1];
                     // curr_y = parameter1[2];  
-                     curr_x = xx; 
-                     curr_y = yy;
-                     cout << "curr x: " << curr_x << endl;
-                     cout << "curr y: " << curr_y << endl;
-                     imshow("view", dst2); 	
-                    }
-           } else {
+                        curr_x = xx; 
+                        curr_y = yy;
+                        cout << "curr x: " << curr_x << endl;
+                        cout << "curr y: " << curr_y << endl;
+                        imshow("view", dst2); 	
+                   }
+               } else if (cameraContextValue == 0) {
+             //      cout << "here1" << endl;
                    cout << "cam:: " << endl;
                    cout << cam0_x0 << " " << cam0_y0 << " " << cam0_x1 << " " << cam0_y1 << endl;
-                   cv_img0 = cv_img(Rect(cam0_x0, cam0_y0, cam0_x1, cam0_y1));
-                   resize(cv_img0, top_view, Size(250, 179));
+                   cout << cam1_x0 << " " << cam1_x1 << endl;
+                   cv_img0 = cv_img(Rect(cam0_x0, cam0_y0, cam0_x1, cam0_y1)); 
+                      
+           //        cv_img0 = cv_img(Rect(0,0,3840, 2748));
+           //        resize(cv_img0, top_view, Size(250, 179));
           //         cv_img0 = cv_img.clone();
            //        resize(cv_img0, dst, size);
          //          imshow("CV_Image", dst);
@@ -420,15 +425,18 @@ int main(int argc, char* argv[])
                        cout << "curr y: " << curr_y << endl;
                        imshow("view", dst2); 
                    }
-	   }    
+                   else {
+                        zoomedin = 1;
+                   }
+	       }    
            // show the current view rectangle
-	   rectangle(top_view, Rect(0,0,100,100), Scalar(0,255,0), 5, 8, 0);
-           imshow("topview", top_view);
-           waitKey(1);
-           if (waitKey(30)==27) {
-                cameras.StopGrabbing();
-           }
-	  }
+	//   rectangle(top_view, Rect(0,0,100,100), Scalar(0,255,0), 5, 8, 0);
+      //     imshow("topview", top_view);
+               waitKey(1);
+               if (waitKey(30)==27) {
+                   cameras.StopGrabbing();
+               }
+	   }
        }
    }
    catch (const GenericException &e)  {

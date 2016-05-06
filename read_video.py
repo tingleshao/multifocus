@@ -9,8 +9,7 @@ frame_counter = 0
 # TODO stitich them 
 # TODO measurement: framerate, bandwidth utilization, etc. 
 # TODO: go some deep shit: tree data sturcture\
-# TODO: go some deep shit: H.265 multi scale support investigate in x265.
-
+# TODO: go some deep shit: H.265 multi scale support investigate in x265.s
 
 while True:
   #  while(cap.isOpened()):

@@ -77,31 +77,13 @@ class Stitcher:
 
 cap0 = cv2.VideoCapture('/home/chong/Data/acA3800-14uc__21833705__20160422_141738868.avi')
 cap1 = cv2.VideoCapture('/home/chong/Data/acA3800-14uc__21833709__20160422_141618171.avi') 
+fps = cap0.get(cv2.CAP_PROP_FPS)
+
 
 frame_counter = 0 
 
 first_frame0 = None
 first_frame1 = None
-
-
-
-'''import cv2
-if __name__ == '__main__' :
- 
-    video = cv2.VideoCapture("video.mp4");
-     
-    # Find OpenCV version
-    (major_ver, minor_ver, subminor_ver) = (cv2.__version__).split('.')
-     
-    if int(major_ver)  < 3 :
-        fps = video.get(cv2.cv.CV_CAP_PROP_FPS)
-        print "Frames per second using video.get(cv2.cv.CV_CAP_PROP_FPS): {0}".format(fps)
-    else :
-        fps = video.get(cv2.CAP_PROP_FPS)
-        print "Frames per second using video.get(cv2.CAP_PROP_FPS) : {0}".format(fps)
-     
-   video.release(); 
-'''
 
 
 # TODO measurement: bandwidth utilization, etc. 
@@ -135,7 +117,7 @@ while True:
   
 
     m,n = frame1.shape[:2]
-    cv2.putText(frame0, "frame: " + str(frame_counter), (5, m-5),  cv2.FONT_HERSHEY_PLAIN, fontScale=1.0, color=(255,255,255), thickness=1)
+    cv2.putText(frame0, "frame: " + str(frame_counter) + "fps: " + str(fps), (5, m-5),  cv2.FONT_HERSHEY_PLAIN, fontScale=1.0, color=(255,255,255), thickness=1)
     cv2.putText(frame1, "frame: " + str(frame_counter), (5, m-5),  cv2.FONT_HERSHEY_PLAIN, fontScale=1.0, color=(255,255,255), thickness=1)
     frame_counter += 1
   # because the video recording is terminated due to file size issue, the last frame has a problem, we cannot reach it otherwise it will break

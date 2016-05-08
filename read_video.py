@@ -83,7 +83,28 @@ frame_counter = 0
 first_frame0 = None
 first_frame1 = None
 
-# TODO measurement: framerate, bandwidth utilization, etc. 
+
+
+'''import cv2
+if __name__ == '__main__' :
+ 
+    video = cv2.VideoCapture("video.mp4");
+     
+    # Find OpenCV version
+    (major_ver, minor_ver, subminor_ver) = (cv2.__version__).split('.')
+     
+    if int(major_ver)  < 3 :
+        fps = video.get(cv2.cv.CV_CAP_PROP_FPS)
+        print "Frames per second using video.get(cv2.cv.CV_CAP_PROP_FPS): {0}".format(fps)
+    else :
+        fps = video.get(cv2.CAP_PROP_FPS)
+        print "Frames per second using video.get(cv2.CAP_PROP_FPS) : {0}".format(fps)
+     
+   video.release(); 
+'''
+
+
+# TODO measurement: bandwidth utilization, etc. 
 # TODO: go some deep shit: tree data sturcture\
 # TODO: go some deep shit: H.265 multi scale support investigate in x265.s
 

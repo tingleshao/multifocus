@@ -3,7 +3,6 @@ import cv2
 import imutils
 
 
-
 class Stitcher: 
     def __init__(self):
         self.isv3 = imutils.is_cv3()
@@ -23,9 +22,8 @@ class Stitcher:
         result[0:imageB.shape[0], 0:imageB.shape[1]] = imageB
         if showMatches:
             vis = self.drawMatches(imageA, imageB, kpsA, kpsB, matches, status) 
-            return (result, vis) 
-        return result 
- 
+            return (result, vis, H) 
+        return (result, None, H)
 
     def detectAndDescribe(self, image):
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -42,7 +40,6 @@ class Stitcher:
         kps = np.float32([kp.pt for kp in kps])
         return (kps, features) 
 
-
     def matchKeypoints(self, kpsA, kpsB, featuresA, featuresB, ratio, reprojThresh):
         matcher = cv2.DescriptorMatcher_create("BruteForce")
         rawMatches = matcher.knnMatch(featuresA, featuresB, 2)
@@ -57,8 +54,7 @@ class Stitcher:
             (H, status) = cv2.findHomography(ptsA, ptsB, cv2.RANSAC, reprojThresh) 
             return (matches, H, status) 
         return None 
-  
-     
+    
     def drawMatches(self, imageA, imageB, kpsA, kpsB, matches, status): 
         (hA, wA) = imageA.shape[:2] 
         (hB, wB) = imageB.shape[:2] 
@@ -92,6 +88,8 @@ first_frame1 = None
 
 stitched = False
 
+H = None
+
 while True:
   #  while(cap.isOpened()):
     ret, frame0 = cap0.read()
@@ -108,14 +106,16 @@ while True:
         first_frame0 = imutils.resize(first_frame0, width=500)
         first_frame1 = imutils.resize(first_frame1, width=500)
         stitcher = Stitcher()
-        (result, vis) = stitcher.stitch([first_frame0, first_frame1], showMatches=True)
-      
+        (result, vis, H) = stitcher.stitch([first_frame0, first_frame1], showMatches=True)
+
         cv2.imshow("image A", first_frame0)
         cv2.imshow("image B", first_frame1) 
         cv2.imshow("Keypoint Matches", vis) 
         cv2.imshow("Result", result)      
-  
-
+    
+    if H != None:
+        wframe0 = cv2.warpPerspective(frame0, H, (frame0.shape[1] + frame1.shape[1], frame0.shape[0]))
+        
     m,n = frame1.shape[:2]
     cv2.putText(frame0, "frame: " + str(frame_counter) + " fps: " + str(fps), (5, m-5),  cv2.FONT_HERSHEY_PLAIN, fontScale=1.0, color=(255,255,255), thickness=1)
     cv2.putText(frame1, "frame: " + str(frame_counter), (5, m-5),  cv2.FONT_HERSHEY_PLAIN, fontScale=1.0, color=(255,255,255), thickness=1)
@@ -129,6 +129,7 @@ while True:
     gray1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY) 
     cv2.imshow('frame0', gray0)
     cv2.imshow('frame1', gray1) 
+    cv2.imshow('warped frame0', wframe0)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 

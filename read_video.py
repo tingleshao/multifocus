@@ -85,9 +85,9 @@ frame_counter = 0
 first_frame0 = None
 first_frame1 = None
 
-
-# TODO measurement: bandwidth utilization, etc. 
-# TODO: go some deep shit: tree data sturcture\
+# TODO: frame rate is limited by how fast the library can render the frame (reading frame from disk and display it on the screen)
+#       right now this is only relevant to the opencv video read code
+# TODO: tree data structure
 # TODO: go some deep shit: H.265 multi scale support investigate in x265.s
 
 stitched = False
@@ -117,7 +117,7 @@ while True:
   
 
     m,n = frame1.shape[:2]
-    cv2.putText(frame0, "frame: " + str(frame_counter) + "fps: " + str(fps), (5, m-5),  cv2.FONT_HERSHEY_PLAIN, fontScale=1.0, color=(255,255,255), thickness=1)
+    cv2.putText(frame0, "frame: " + str(frame_counter) + " fps: " + str(fps), (5, m-5),  cv2.FONT_HERSHEY_PLAIN, fontScale=1.0, color=(255,255,255), thickness=1)
     cv2.putText(frame1, "frame: " + str(frame_counter), (5, m-5),  cv2.FONT_HERSHEY_PLAIN, fontScale=1.0, color=(255,255,255), thickness=1)
     frame_counter += 1
   # because the video recording is terminated due to file size issue, the last frame has a problem, we cannot reach it otherwise it will break

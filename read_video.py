@@ -327,38 +327,38 @@ def main():
     cv2.destroyAllWindows()
 
 # TODO: comment out here to get H first
-    global cur_xlim, cur_ylim, curr_img
+#    global cur_xlim, cur_ylim, curr_img
     '''test some Jpeg Tree with user input'''
     '''at the same time, print the tree structure, and the current loaded tree''' 
     '''How jpeg is configured?'''# zoom in / out demo
     # zoom_tree_factory is for detecting mouse events 
-    f = zoom_tree_factory(base_scale = scale)
-    cv2.namedWindow("zoom")
-    cv2.setMouseCallback("zoom", f)
-    cv2.resizeWindow("zoom", 1024, 767)
+#    f = zoom_tree_factory(base_scale = scale)
+#    cv2.namedWindow("zoom")
+#    cv2.setMouseCallback("zoom", f)
+#    cv2.resizeWindow("zoom", 1024, 767)
 
-    curr_img = cv2.resize(curr_img, (1024, 768)) 
+#    curr_img = cv2.resize(curr_img, (1024, 768)) 
 
-    while True:
+#    while True:
      #   if focus_now:
      #		out_focus_copy = out_focus.copy()
-        cv2.imshow("zoom", curr_img)
-        key = cv2.waitKey(20)
+#        cv2.imshow("zoom", curr_img)
+#        key = cv2.waitKey(20)
     
-        if key != -1:
-            print key
-        if key == 97: # 'a' -> zoom in 
-            mode = 0
-            print "mode swtiched to zoom in"
-        if key == 115: # 's' -> zoom out 
-            mode = 1 
-            print "mode switched to zoom out"
-        if key == 119:
-            print "take streen shot: " + str(time.time()).split('.')[0] + '.png'
-            cv2.imwrite(str(time.time()).split('.')[0] + '.png', curr_img)
-        if key == 27: # exit on ESC
-            break
-    cv2.destroyWindow("preview")
+#        if key != -1:
+#            print key
+#        if key == 97: # 'a' -> zoom in 
+#            mode = 0
+#            print "mode swtiched to zoom in"
+#        if key == 115: # 's' -> zoom out 
+#            mode = 1 
+#            print "mode switched to zoom out"
+#        if key == 119:
+#            print "take streen shot: " + str(time.time()).split('.')[0] + '.png'
+#            cv2.imwrite(str(time.time()).split('.')[0] + '.png', curr_img)
+#        if key == 27: # exit on ESC
+#            break
+#    cv2.destroyWindow("preview")
 
     
 if __name__ == '__main__':

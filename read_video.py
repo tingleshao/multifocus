@@ -303,12 +303,12 @@ def main():
             first_frame1 = imutils.resize(first_frame1, width=500)
             stitcher = Stitcher()
           #  (result, vis, H) = stitcher.stitch([first_frame0, first_frame1], showMatches=True)
-            H = np.array([[1.99116709e+00, 2.96239415e-02, 4.03929046e+01], [ -8.01318987e-02   2.10573123e+00   3.05521944e+01],[ -1.99180445e-04   4.62456395e-05   1.00000000e+00]]
+            H = np.array([[1.99116709e+00, 2.96239415e-02, 4.03929046e+01], [ -8.01318987e-02, 2.10573123e+00, 3.05521944e+01], [-1.99180445e-04, 4.62456395e-05, 1.00000000e+00]])
             print "H: " + str(H)
-            cv2.imshow("image A", first_frame0)
-            cv2.imshow("image B", first_frame1) 
-            cv2.imshow("Keypoint Matches", vis) 
-            cv2.imshow("Result", result)      
+           # cv2.imshow("image A", first_frame0)
+           # cv2.imshow("image B", first_frame1) 
+           # cv2.imshow("Keypoint Matches", vis) 
+           # cv2.imshow("Result", result)      
     
         if H != None:
             wframe0 = cv2.warpPerspective(frame0, H, (frame0.shape[1] + frame1.shape[1], frame0.shape[0] + frame1.shape[0]))
@@ -346,7 +346,7 @@ def main():
 
     curr_img = cv2.resize(curr_img, (500, 357)) 
     while True:
-        if focus_now:
+      #  if focus_now:
 #     		out_focus_copy = out_focus.copy()
         cv2.imshow("zoom", curr_img)
         key = cv2.waitKey(20)

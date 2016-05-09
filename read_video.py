@@ -5,6 +5,8 @@ import time
 import matplotlib.pyplot as plt
 
 
+# TODO: code for switching neighboring view, etc.
+
 class Stitcher: 
     def __init__(self):
         self.isv3 = imutils.is_cv3()
@@ -174,12 +176,12 @@ class TreeNode:
         return self.children[index]
     # TODO: discover a blending approach 
     
-    def getFrame():
+    def getFrame(self):
         frame = self.data.read()
    #     frame = cv2.resize(frame, (500, 357))
-        frame_counter += 1
-        if frame_counter == self.data.get(cv2.CAP_PROP_FRAME_COUNT)-1:
-            frame_counter = 0
+        self.frame_counter += 1
+        if self.frame_counter == self.data.get(cv2.CAP_PROP_FRAME_COUNT)-1:
+            self.frame_counter = 0
             self.data.set(cv2.CAP_PROP_POS_FRAMES, 0)
         return frame    
               
@@ -207,18 +209,23 @@ mm_00_t = TreeNode(v0, [mm_01_t], None, mm_00_x, mm_00_y, mm_00_w, mm_00_h, "vid
 
 cur_xlim = [0, mm_00_w]
 cur_ylim = [0, mm_00_h]
-curr_img = mm_00_t.generateView(x, y, cur_xlim, cur_ylim)
+curr_img = mm_00_t.getFrame()
 mm_01_t.setMom(mm_00_t)
 
 nav = TreeNavigator(mm_00_t)
 
-xlim = out_focus.shape[1]
-ylim = out_focus.shape[0]
+xlim = 3840
+ylim = 2748
 
 mode = 0 # 0: zoom in, 1: zoom out
 
 ratio = 2048 / (325 * 2)
 scale = 1.5 
+
+# H: [[  1.99116709e+00   2.96239415e-02   4.03929046e+01]
+# [ -8.01318987e-02   2.10573123e+00   3.05521944e+01]
+# [ -1.99180445e-04   4.62456395e-05   1.00000000e+00]]
+
        
 def zoom_tree_factory(base_scale = 2.):
     def zoom_fun(event, x, y, flags, param):

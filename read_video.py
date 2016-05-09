@@ -302,7 +302,8 @@ def main():
             first_frame0 = imutils.resize(first_frame0, width=500)
             first_frame1 = imutils.resize(first_frame1, width=500)
             stitcher = Stitcher()
-            (result, vis, H) = stitcher.stitch([first_frame0, first_frame1], showMatches=True)
+          #  (result, vis, H) = stitcher.stitch([first_frame0, first_frame1], showMatches=True)
+            H = np.array([[1.99116709e+00, 2.96239415e-02, 4.03929046e+01], [ -8.01318987e-02   2.10573123e+00   3.05521944e+01],[ -1.99180445e-04   4.62456395e-05   1.00000000e+00]]
             print "H: " + str(H)
             cv2.imshow("image A", first_frame0)
             cv2.imshow("image B", first_frame1) 
@@ -333,38 +334,37 @@ def main():
     cap1.release()
     cv2.destroyAllWindows()
 
-# TODO: comment out here to get H first
 #    global cur_xlim, cur_ylim, curr_img
     '''test some Jpeg Tree with user input'''
     '''at the same time, print the tree structure, and the current loaded tree''' 
     '''How jpeg is configured?'''# zoom in / out demo
     # zoom_tree_factory is for detecting mouse events 
-#    f = zoom_tree_factory(base_scale = scale)
-#    cv2.namedWindow("zoom")
-#    cv2.setMouseCallback("zoom", f)
-#    cv2.resizeWindow("zoom", 1024, 767)
+    f = zoom_tree_factory(base_scale = scale)
+    cv2.namedWindow("zoom")
+    cv2.setMouseCallback("zoom", f)
+    cv2.resizeWindow("zoom", 500, 357)
 
-#    curr_img = cv2.resize(curr_img, (1024, 768)) 
-#    while True:
-     #   if focus_now:
-     #		out_focus_copy = out_focus.copy()
-#        cv2.imshow("zoom", curr_img)
-#        key = cv2.waitKey(20)
+    curr_img = cv2.resize(curr_img, (500, 357)) 
+    while True:
+        if focus_now:
+#     		out_focus_copy = out_focus.copy()
+        cv2.imshow("zoom", curr_img)
+        key = cv2.waitKey(20)
     
-#        if key != -1:
-#            print key
-#        if key == 97: # 'a' -> zoom in 
-#            mode = 0
-#            print "mode swtiched to zoom in"
-#        if key == 115: # 's' -> zoom out 
-#            mode = 1 
-#            print "mode switched to zoom out"
-#        if key == 119:
-#            print "take streen shot: " + str(time.time()).split('.')[0] + '.png'
-#            cv2.imwrite(str(time.time()).split('.')[0] + '.png', curr_img)
-#        if key == 27: # exit on ESC
-#            break
-#    cv2.destroyWindow("preview")
+        if key != -1:
+            print key
+        if key == 97: # 'a' -> zoom in 
+            mode = 0
+            print "mode swtiched to zoom in"
+        if key == 115: # 's' -> zoom out 
+            mode = 1 
+            print "mode switched to zoom out"
+        if key == 119:
+            print "take streen shot: " + str(time.time()).split('.')[0] + '.png'
+            cv2.imwrite(str(time.time()).split('.')[0] + '.png', curr_img)
+        if key == 27: # exit on ESC
+            break
+    cv2.destroyWindow("preview")
 
     
 if __name__ == '__main__':

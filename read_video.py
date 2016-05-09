@@ -154,8 +154,8 @@ class TreeNode:
         self.upper_y = upper_y 
         self.w = w 
         self.h = h   
-        self.xlim = data.shape[1]
-        self.ylim = data.shape[0]
+        self.xlim = 3840
+        self.ylim = 2748
         self.name = name
         self.frame_counter = 0 
 
@@ -338,7 +338,6 @@ def main():
 #    cv2.resizeWindow("zoom", 1024, 767)
 
 #    curr_img = cv2.resize(curr_img, (1024, 768)) 
-
 #    while True:
      #   if focus_now:
      #		out_focus_copy = out_focus.copy()

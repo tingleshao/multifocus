@@ -95,11 +95,11 @@ class TreeNavigator:
         
         xlim = curr_xlim
         ylim = curr_ylim 
-        ratio2 = 1024 / (xlim[1] - xlim[0])
+        ratio2 = 500 / (xlim[1] - xlim[0])
         if (curr_ylim[1] - curr_ylim[0] < 200):
             # approach: having a reference to the current mom node, and blend using the mom node data and current data 
             if not self.in_layer2:
-                if 0 < transformX(x) < 3840 and 0 < transformX(y) < 2748:
+                if 0 < transformX(x)/2 < 3840 and 0 < transformX(y)/2 < 2748:
                     self.prev_node = self.curr_node  
                     self.curr_node = self.curr_node.getChild(0)
                     print "enter in zoom in mode"
@@ -107,7 +107,7 @@ class TreeNavigator:
                     img = self.prev_node.getFrame()
                     img = img[ylim[0]:ylim[1], xlim[0]:xlim[1]]
                     in_focus_x0 = xlim[0] if xlim[0] > 0 else 0
-                    in_focus_x1 = xlim[1] if xlim[1] < 3840/2 + 0 else 3840/2 + 0 
+                    in_focus_x1 = xlim[1] if xlim[1] < 3840 / 2 + 0 else 3840/2 + 0 
                     in_focus_y0 = ylim[0] if ylim[0] > 0 else 0
                     in_focus_y1 = ylim[1] if ylim[1] < 2748 / 2 + 0 else 2748/2 + 0  
                     real_x0 = ( in_focus_x0 - xlim[0] ) * ratio2 
@@ -115,13 +115,14 @@ class TreeNavigator:
                     real_y0 = ( in_focus_y0 - ylim[0] ) * ratio2 
                     real_y1 = ( in_focus_y1 - ylim[0] ) * ratio2    
                     print real_x0, real_x1, real_y0, real_y1
-                    in_focus_x0 = (in_focus_x0 - 0) * ratio 
-                    in_focus_x1 = (in_focus_x1 - 0) * ratio 
-                    in_focus_y0 = (in_focus_y0 - 0) * ratio 
-                    in_focus_y1 = (in_focus_y1 - 0) * ratio
-                    img = cv2.resize(img, (500, 357)) 
+       #             in_focus_x0 = (in_focus_x0 - 0) * ratio 
+       #             in_focus_x1 = (in_focus_x1 - 0) * ratio 
+       #             in_focus_y0 = (in_focus_y0 - 0) * ratio 
+       #             in_focus_y1 = (in_focus_y1 - 0) * ratio
+                    img = cv2.resize(img, (500, 357))
+                    print "in focus: " + str(in_focus_y0) + " " + str(in_focus_y1) + " " + str(in_focus_x0) + " " + str(in_focus_x1)  
                     sub_img = child_img[in_focus_y0:in_focus_y1, in_focus_x0:in_focus_x1]
-                    sub_img = cv2.resize(sub_img, (int(real_x1 - real_x0), int(real_y1 - real_y0)))
+                    sub_img = cv2.resize(sub_img, (500, 357))
                     img[real_y0:real_y1, real_x0:real_x1] = sub_img 
             else: 
                  print "stay in curr node mode!!!!!!!"
@@ -217,7 +218,7 @@ ylim = 2748
 
 mode = 0 # 0: zoom in, 1: zoom out
 
-ratio = 3840 / (500)
+ratio = 3840 / (500 * 2)
 scale = 1.5 
 
 # H: [[  1.99116709e+00   2.96239415e-02   4.03929046e+01]

@@ -4,9 +4,6 @@ import imutils
 import time
 import matplotlib.pyplot as plt
 
-
-# TODO: code for switching neighboring view, etc.
-
 class Stitcher: 
     def __init__(self):
         self.isv3 = imutils.is_cv3()
@@ -102,45 +99,45 @@ class TreeNavigator:
         if (curr_ylim[1] - curr_ylim[0] < 200):
             # approach: having a reference to the current mom node, and blend using the mom node data and current data 
             if not self.in_layer2:
-                self.prev_node = self.curr_node 
-            # where can we get mm_25_00_xxx? => it is global. 
-            if mm_25_00_x / 2 <= x <= mm_25_w / 2 + mm_25_00_x / 2 and mm_25_00_y / 2 <= y <= mm_25_h / 2 + mm_25_00_y / 2: 
-                if not self.in_layer2:
+                if 0 < transformX(x) < 3840 and 0 < transformX(y) < 2748:
+                    self.prev_node = self.curr_node  
                     self.curr_node = self.curr_node.getChild(0)
-                print "in zoom mode 0!w"
-                child_img = self.curr_node.getFrame() 
-                img = self.prev_node.data.getFrame()
-                img = img[ylim[0]:ylim[1], xlim[0]:xlim[1]]
-                # TODO: change this to be half of the x 
-                in_focus_x0 = xlim[0] if xlim[0] > mm_25_00_x else mm_25_00_x 
-                in_focus_x1 = xlim[1] if xlim[1] < mm_25_w + mm_25_00_x else mm_25_w + mm_25_00_x 
-                in_focus_y0 = ylim[0] if ylim[0] > mm_25_00_y else mm_25_00_y
-                in_focus_y1 = ylim[1] if ylim[1] < mm_25_h + mm_25_00_y else mm_25_h + mm_25_00_y 
-                real_x0 = ( in_focus_x0 - xlim[0] ) * ratio2 
-                real_x1 = ( in_focus_x1 - xlim[0] ) * ratio2 
-                real_y0 = ( in_focus_y0 - ylim[0] ) * ratio2 
-                real_y1 = ( in_focus_y1 - ylim[0] ) * ratio2    
-                in_focus_x0 = (in_focus_x0 - mm_25_00_x) * ratio 
-                in_focus_x1 = (in_focus_x1 - mm_25_00_x) * ratio 
-                in_focus_y0 = (in_focus_y0 - mm_25_00_y) * ratio 
-                in_focus_y1 = (in_focus_y1 - mm_25_00_y) * ratio
-                img = cv2.resize(img, (500, 357)) 
-                sub_img = child_img[in_focus_y0:in_focus_y1, in_focus_x0:in_focus_x1]
-                sub_img = cv2.resize(sub_img, (int(real_x1 - real_x0), int(real_y1 - real_y0)))
-                img[real_y0:real_y1, real_x0:real_x1] = sub_img 
+                    print "enter in zoom in mode"
+                    child_img = self.curr_node.getFrame() 
+                    img = self.prev_node.getFrame()
+                    img = img[ylim[0]:ylim[1], xlim[0]:xlim[1]]
+                    in_focus_x0 = xlim[0] if xlim[0] > 0 else 0
+                    in_focus_x1 = xlim[1] if xlim[1] < 3840/2 + 0 else 3840/2 + 0 
+                    in_focus_y0 = ylim[0] if ylim[0] > 0 else 0
+                    in_focus_y1 = ylim[1] if ylim[1] < 2748 / 2 + 0 else 2748/2 + 0  
+                    real_x0 = ( in_focus_x0 - xlim[0] ) * ratio2 
+                    real_x1 = ( in_focus_x1 - xlim[0] ) * ratio2 
+                    real_y0 = ( in_focus_y0 - ylim[0] ) * ratio2 
+                    real_y1 = ( in_focus_y1 - ylim[0] ) * ratio2    
+                    print real_x0, real_x1, real_y0, real_y1
+                    in_focus_x0 = (in_focus_x0 - 0) * ratio 
+                    in_focus_x1 = (in_focus_x1 - 0) * ratio 
+                    in_focus_y0 = (in_focus_y0 - 0) * ratio 
+                    in_focus_y1 = (in_focus_y1 - 0) * ratio
+                    img = cv2.resize(img, (500, 357)) 
+                    sub_img = child_img[in_focus_y0:in_focus_y1, in_focus_x0:in_focus_x1]
+                    sub_img = cv2.resize(sub_img, (int(real_x1 - real_x0), int(real_y1 - real_y0)))
+                    img[real_y0:real_y1, real_x0:real_x1] = sub_img 
             else: 
-            # can we ever get here? 
-                 print "NOT in zoom in mode!!!!!!!"
-                 img = out_focus[ylim[0]:ylim[1], xlim[0]:xlim[1]] 
+                 print "stay in curr node mode!!!!!!!"
+                 img = self.curr_node.getFrame()
+                 img = img[ylim[0]:ylim[1], xlim[0]:xlim[1]] 
                  img = cv2.resize(img, (500, 357))             
          #   img = self.curr_node.generateView(x, y, curr_xlim, curr_ylim)
             self.in_layer2 = True
         else: 
+            print "in out mode!"
             if self.curr_node.getMom():
                 self.curr_node = self.curr_node.getMom()
                 self.prev_node = None
                 self.in_layer2 = False
-            img = self.curr_node.data[curr_ylim[0]:curr_ylim[1], curr_xlim[0]:curr_xlim[1]]
+            img = self.curr_node.getFrame()
+            img = img[curr_ylim[0]:curr_ylim[1], curr_xlim[0]:curr_xlim[1]]
         return cv2.resize(img, (500, 357))
         
 
@@ -177,7 +174,7 @@ class TreeNode:
     # TODO: discover a blending approach 
     
     def getFrame(self):
-        frame = self.data.read()
+        ret, frame = self.data.read()
    #     frame = cv2.resize(frame, (500, 357))
         self.frame_counter += 1
         if self.frame_counter == self.data.get(cv2.CAP_PROP_FRAME_COUNT)-1:
@@ -210,6 +207,7 @@ mm_00_t = TreeNode(v0, [mm_01_t], None, mm_00_x, mm_00_y, mm_00_w, mm_00_h, "vid
 cur_xlim = [0, mm_00_w]
 cur_ylim = [0, mm_00_h]
 curr_img = mm_00_t.getFrame()
+#print curr_img
 mm_01_t.setMom(mm_00_t)
 
 nav = TreeNavigator(mm_00_t)
@@ -219,18 +217,22 @@ ylim = 2748
 
 mode = 0 # 0: zoom in, 1: zoom out
 
-ratio = 2048 / (325 * 2)
+ratio = 3840 / (500)
 scale = 1.5 
 
 # H: [[  1.99116709e+00   2.96239415e-02   4.03929046e+01]
 # [ -8.01318987e-02   2.10573123e+00   3.05521944e+01]
 # [ -1.99180445e-04   4.62456395e-05   1.00000000e+00]]
 
+def transformX(x):
+    return int(float(x) * 3840 / 500)
+
        
 def zoom_tree_factory(base_scale = 2.):
     def zoom_fun(event, x, y, flags, param):
         global cur_xlim, cur_ylim, nav, curr_img
         if event == cv2.EVENT_LBUTTONDOWN or event == cv2.EVENT_MOUSEWHEEL:
+            print "L button down!" 
             cur_xrange = (cur_xlim[1] - cur_xlim[0]) * 0.5
             cur_yrange = (cur_ylim[1] - cur_ylim[0]) * 0.5 
         # get x and y locations of the scroll event and the click event 
@@ -246,27 +248,32 @@ def zoom_tree_factory(base_scale = 2.):
                     scale_factor = 1 
             if event == cv2.EVENT_LBUTTONDOWN:
                 if mode == 0:
+                    print 1
+                    print x, y, cur_xlim, cur_ylim
                     scale_factor = 1 / base_scale
                 elif mode == 1:
+                    print 2
                     scale_factor = base_scale
                 else:
+                    print 3
                     scale_factor = 1
-            xlow = x*2 - cur_xrange * scale_factor 
-            xhigh = x*2 + cur_xrange * scale_factor
-            ylow = y*2 - cur_yrange * scale_factor 
-            yhigh = y*2 + cur_yrange * scale_factor 
+            xlow = transformX(x) - cur_xrange * scale_factor 
+            xhigh = transformX(x) + cur_xrange * scale_factor
+            ylow = transformX(y) - cur_yrange * scale_factor 
+            yhigh = transformX(y) + cur_yrange * scale_factor 
             cur_xlim = [xlow if xlow > -1 else 0,
                     xhigh if xhigh < xlim else xlim-1]
             cur_ylim = [ylow if ylow > -1 else 0, 
-                    yhigh if yhigh < ylim else ylim-1] 
-            if -0.1 <= ((cur_ylim[1] - cur_ylim[0]) / (cur_xlim[1] - cur_xlim[0]) - 3./4) <= 0.1: 
+                    yhigh if yhigh < ylim else ylim-1]        
+            if -0.1 <= ((cur_ylim[1] - cur_ylim[0]) / (cur_xlim[1] - cur_xlim[0]) - 2748./3840) <= 0.1: 
                 curr_img = nav.generateView(x, y, cur_xlim, cur_ylim) # current node is responsible for generating a view.
+      #          print curr_img
                 nav.printCurrNodeInfo()
     return zoom_fun
 
 
 def main():
-
+    global curr_img
     cap0 = cv2.VideoCapture('/home/chong/Data/acA3800-14uc__21833705__20160422_141738868.avi')
     cap1 = cv2.VideoCapture('/home/chong/Data/acA3800-14uc__21833709__20160422_141618171.avi') 
     fps = cap0.get(cv2.CAP_PROP_FPS)
@@ -281,10 +288,57 @@ def main():
     # TODO: tree data structure
     # TODO: go some deep shit: H.265 multi scale support investigate in x265.s
     # TODO: click zoom in 
+    # TODO: code for switching neighbor view, etc.
 
     stitched = False
-
     H = None
+
+#    global cur_xlim, cur_ylim, curr_img
+    '''test some Jpeg Tree with user input'''
+    '''at the same time, print the tree structure, and the current loaded tree''' 
+    '''How jpeg is configured?'''# zoom in / out demo
+    # zoom_tree_factory is for detecting mouse events 
+    f = zoom_tree_factory(base_scale = scale)
+    cv2.namedWindow("zoom")
+    cv2.setMouseCallback("zoom", f)
+    cv2.resizeWindow("zoom", 500, 357)
+    print "\n\n\n\n\n"
+    print curr_img
+    print "\n\n\nwww\n\n\n"
+   # x = np.array(curr_img)
+    curr_img = cv2.resize(curr_img, (500, 357)) 
+    while True:
+      #  if focus_now:
+#     		out_focus_copy = out_focus.copy()
+        #curr_img = nav.generateView()
+        cv2.imshow("zoom", curr_img)
+        key = cv2.waitKey(20)
+    
+        if key != -1:
+            print key
+        if key == 97: # 'a' -> zoom in 
+            mode = 0
+            print "mode swtiched to zoom in"
+        if key == 115: # 's' -> zoom out 
+            mode = 1 
+            print "mode switched to zoom out"
+        if key == 119:
+            print "take streen shot: " + str(time.time()).split('.')[0] + '.png'
+            cv2.imwrite(str(time.time()).split('.')[0] + '.png', curr_img)
+        if key == 27: # exit on ESC
+            break
+    cv2.destroyWindow("preview")
+
+
+
+
+
+
+
+
+
+
+
 
     while True:
       #  while(cap.isOpened()):
@@ -334,37 +388,7 @@ def main():
     cap1.release()
     cv2.destroyAllWindows()
 
-#    global cur_xlim, cur_ylim, curr_img
-    '''test some Jpeg Tree with user input'''
-    '''at the same time, print the tree structure, and the current loaded tree''' 
-    '''How jpeg is configured?'''# zoom in / out demo
-    # zoom_tree_factory is for detecting mouse events 
-    f = zoom_tree_factory(base_scale = scale)
-    cv2.namedWindow("zoom")
-    cv2.setMouseCallback("zoom", f)
-    cv2.resizeWindow("zoom", 500, 357)
 
-    curr_img = cv2.resize(curr_img, (500, 357)) 
-    while True:
-      #  if focus_now:
-#     		out_focus_copy = out_focus.copy()
-        cv2.imshow("zoom", curr_img)
-        key = cv2.waitKey(20)
-    
-        if key != -1:
-            print key
-        if key == 97: # 'a' -> zoom in 
-            mode = 0
-            print "mode swtiched to zoom in"
-        if key == 115: # 's' -> zoom out 
-            mode = 1 
-            print "mode switched to zoom out"
-        if key == 119:
-            print "take streen shot: " + str(time.time()).split('.')[0] + '.png'
-            cv2.imwrite(str(time.time()).split('.')[0] + '.png', curr_img)
-        if key == 27: # exit on ESC
-            break
-    cv2.destroyWindow("preview")
 
     
 if __name__ == '__main__':

@@ -96,8 +96,9 @@ class TreeNavigator:
         
         xlim = curr_xlim
         ylim = curr_ylim 
-        ratio2 = 500 / (xlim[1] - xlim[0])
-        if (curr_ylim[1] - curr_ylim[0] < 200):
+        ratio2 = 500. / (xlim[1] - xlim[0])
+        ratio1 = 500. / 3840
+        if (curr_ylim[1] - curr_ylim[0] < 500):
             # approach: having a reference to the current mom node, and blend using the mom node data and current data 
             if not self.in_layer2:
                 # enter layer 2
@@ -109,18 +110,25 @@ class TreeNavigator:
                     img = self.prev_node.getFrame()
                     img = img[ylim[0]:ylim[1], xlim[0]:xlim[1]]
                     in_focus_x0 = xlim[0] * 2 if xlim[0] > 0 else 0
-                    in_focus_x1 = xlim[1] * 2 if xlim[1] < 3840 / 2 + 0 else 3840/2 + 0 
+                    in_focus_x1 = xlim[1] * 2 if xlim[1] < 3840 / 2 + 0 else 3840 + 0 
                     in_focus_y0 = ylim[0] * 2 if ylim[0] > 0 else 0
-                    in_focus_y1 = ylim[1] * 2 if ylim[1] < 2748 / 2 + 0 else 2748/2 + 0  
-                    real_x0 = ( in_focus_x0 ) * ratio2 
-                    real_x1 = ( in_focus_x1 ) * ratio2 
-                    real_y0 = ( in_focus_y0 ) * ratio2 
-                    real_y1 = ( in_focus_y1 ) * ratio2    
+                    in_focus_y1 = ylim[1] * 2 if ylim[1] < 2748 / 2 + 0 else 2748 + 0  
+                    real_x0 = (( in_focus_x0 ) /2 - xlim[0] ) * ratio2 
+                    real_x1 = (( in_focus_x1 ) /2  - xlim[0] )* ratio2
+                    real_y0 = (( in_focus_y0 ) /2 - ylim[0] ) * ratio2
+                    real_y1 = (( in_focus_y1 ) /2   - ylim[0] ) * ratio2  
+                    real_x0 = real_x0 if real_x0 > 0 else 0
+                    real_x1 = real_x1 if real_x1 < 500 else 500
+                    real_y0 = real_y0 if real_y0 > 0 else 0
+                    real_y1 = real_y1 if real_y1 < 357 else 357
                     img = cv2.resize(img, (500, 357))
                     print "in focus: " + str(in_focus_y0) + " " + str(in_focus_y1) + " " + str(in_focus_x0) + " " + str(in_focus_x1)  
+                    print "real: " + str(real_y0) + " " + str(real_y1) + " " + str(real_x0) + " " + str(real_x1)
+                    print "img: " + str(img.shape)
                     sub_img = child_img[in_focus_y0:in_focus_y1, in_focus_x0:in_focus_x1]
-                    sub_img = cv2.resize(sub_img, (real_x1 - real_x0, real_y1 - real_y0))
-                    img[real_y0:real_y1, real_x0:real_x1] = sub_img 
+                    sub_img = cv2.resize(sub_img, (int(real_x1) - int(real_x0), int(real_y1) - int(real_y0)))
+                      
+                    img[int(real_y0):int(real_y1), int(real_x0):int(real_x1)] = sub_img 
             else: 
                  print "stay in curr node mode!!!!!!!"
                  img = self.curr_node.getFrame()

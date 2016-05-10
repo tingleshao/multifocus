@@ -90,6 +90,7 @@ class TreeNavigator:
         return None
         
     def generateView(self, x, y, curr_xlim, curr_ylim):
+    # curr_xlim / curr_ylim: x - y lims in global space
     # responsible for triversing the tree
         img = None
         
@@ -99,30 +100,26 @@ class TreeNavigator:
         if (curr_ylim[1] - curr_ylim[0] < 200):
             # approach: having a reference to the current mom node, and blend using the mom node data and current data 
             if not self.in_layer2:
-                if 0 < transformX(x)/2 < 3840 and 0 < transformX(y)/2 < 2748:
+                # enter layer 2
+                if 0 < transformX(x) < 3840 / 2 or 0 < transformX(y) < 2748 / 2:
                     self.prev_node = self.curr_node  
                     self.curr_node = self.curr_node.getChild(0)
                     print "enter in zoom in mode"
                     child_img = self.curr_node.getFrame() 
                     img = self.prev_node.getFrame()
                     img = img[ylim[0]:ylim[1], xlim[0]:xlim[1]]
-                    in_focus_x0 = xlim[0] if xlim[0] > 0 else 0
-                    in_focus_x1 = xlim[1] if xlim[1] < 3840 / 2 + 0 else 3840/2 + 0 
-                    in_focus_y0 = ylim[0] if ylim[0] > 0 else 0
-                    in_focus_y1 = ylim[1] if ylim[1] < 2748 / 2 + 0 else 2748/2 + 0  
-                    real_x0 = ( in_focus_x0 - xlim[0] ) * ratio2 
-                    real_x1 = ( in_focus_x1 - xlim[0] ) * ratio2 
-                    real_y0 = ( in_focus_y0 - ylim[0] ) * ratio2 
-                    real_y1 = ( in_focus_y1 - ylim[0] ) * ratio2    
-                    print real_x0, real_x1, real_y0, real_y1
-       #             in_focus_x0 = (in_focus_x0 - 0) * ratio 
-       #             in_focus_x1 = (in_focus_x1 - 0) * ratio 
-       #             in_focus_y0 = (in_focus_y0 - 0) * ratio 
-       #             in_focus_y1 = (in_focus_y1 - 0) * ratio
+                    in_focus_x0 = xlim[0] * 2 if xlim[0] > 0 else 0
+                    in_focus_x1 = xlim[1] * 2 if xlim[1] < 3840 / 2 + 0 else 3840/2 + 0 
+                    in_focus_y0 = ylim[0] * 2 if ylim[0] > 0 else 0
+                    in_focus_y1 = ylim[1] * 2 if ylim[1] < 2748 / 2 + 0 else 2748/2 + 0  
+                    real_x0 = ( in_focus_x0 ) * ratio2 
+                    real_x1 = ( in_focus_x1 ) * ratio2 
+                    real_y0 = ( in_focus_y0 ) * ratio2 
+                    real_y1 = ( in_focus_y1 ) * ratio2    
                     img = cv2.resize(img, (500, 357))
                     print "in focus: " + str(in_focus_y0) + " " + str(in_focus_y1) + " " + str(in_focus_x0) + " " + str(in_focus_x1)  
                     sub_img = child_img[in_focus_y0:in_focus_y1, in_focus_x0:in_focus_x1]
-                    sub_img = cv2.resize(sub_img, (500, 357))
+                    sub_img = cv2.resize(sub_img, (real_x1 - real_x0, real_y1 - real_y0))
                     img[real_y0:real_y1, real_x0:real_x1] = sub_img 
             else: 
                  print "stay in curr node mode!!!!!!!"
@@ -329,17 +326,6 @@ def main():
         if key == 27: # exit on ESC
             break
     cv2.destroyWindow("preview")
-
-
-
-
-
-
-
-
-
-
-
 
     while True:
       #  while(cap.isOpened()):

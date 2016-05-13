@@ -14,6 +14,10 @@ class TreeNavigator:
         self.prev_node = None
         self.in_layer2 = False
         self.H = None
+        self.curr_xlim = [0,3840]
+        self.curr_ylim = [0,2748]
+        self.x = 0
+        self.y = 0 
 
     def setH(self, H):
         self.H = H 
@@ -26,8 +30,17 @@ class TreeNavigator:
     def imageEnhancement(self): 
     # enhance the image when zoomed in 
         return None
+
+    def update(self):
+        overview = self.generateOverview(self.x, self.y, self.curr_xlim, self.curr_ylim)
+        curr = self.generateView(self.x, self.y, self.curr_xlim, self.curr_ylim)
+        return overview, curr
         
     def generateOverview(self, x, y, curr_xlim, curr_ylim): 
+        self.x = x
+        self.y = y 
+        self.curr_xlim = curr_xlim
+        self.curr_ylim = curr_ylim
         print "overview changed!"
     # generate the small window showing the overview: where I am with respect to the global
         img = self.global_frame
@@ -38,6 +51,10 @@ class TreeNavigator:
         return img
   
     def generateView(self, x, y, curr_xlim, curr_ylim):
+        self.x = x
+        self.y = y 
+        self.curr_xlim = curr_xlim
+        self.curr_ylim = curr_ylim
     # curr_xlim / curr_ylim: x - y lims in global space
     # responsible for triversing the tree
         img = None
@@ -137,15 +154,12 @@ class TreeNode:
     
     def getFrame(self):
         ret, frame = self.data.read()
-   #     frame = cv2.resize(frame, (500, 357))
         self.frame_counter += 1
         if self.frame_counter == self.data.get(cv2.CAP_PROP_FRAME_COUNT)-1:
             self.frame_counter = 0
             self.data.set(cv2.CAP_PROP_POS_FRAMES, 0)
         return frame    
               
-
-#image_dir = 'image_saved/exp00/'
 
 v0 = cv2.VideoCapture('/home/chong/Data/acA3800-14uc__21833705__20160422_141738868.avi')
 v1 = cv2.VideoCapture('/home/chong/Data/acA3800-14uc__21833709__20160422_141618171.avi') 
@@ -187,10 +201,6 @@ mode = 0 # 0: zoom in, 1: zoom out
 
 ratio = 3840 / (500 * 2)
 scale = 1.5 
-
-# H: [[  1.99116709e+00   2.96239415e-02   4.03929046e+01]
-# [ -8.01318987e-02   2.10573123e+00   3.05521944e+01]
-# [ -1.99180445e-04   4.62456395e-05   1.00000000e+00]]
 
 def transformX(x):
     return int(float(x) * 3840 / 500)
@@ -244,13 +254,9 @@ def main():
     global curr_img, overview_img, nav
     cap0 = cv2.VideoCapture('/home/chong/Data/acA3800-14uc__21833705__20160422_141738868.avi')
     cap1 = cv2.VideoCapture('/home/chong/Data/acA3800-14uc__21833709__20160422_141618171.avi') 
-    fps = cap0.get(cv2.CAP_PROP_FPS)
-
-    frame_counter = 0 
 
     first_frame0 = None
     first_frame1 = None
-    # TODO: show a subwindow
     # TODO: frame rate is limited by how fast the library can render the frame (reading frame from disk and display it on the screen)
     #       right now this is only relevant to the opencv video read code
     # TODO: tree data structure
@@ -272,16 +278,11 @@ def main():
     cv2.namedWindow("zoom")
     cv2.setMouseCallback("zoom", f)
     cv2.resizeWindow("zoom", 500, 357)
-    print "\n\n\n\n\n"
-    print curr_img
-    print "\n\n\nwww\n\n\n"
-   # x = np.array(curr_img)
     curr_img = cv2.resize(curr_img, (500, 357)) 
     overview_img = cv2.resize(overview_img, (500, 357))
     while True:
-      #  if focus_now:
-#     		out_focus_copy = out_focus.copy()
-        #curr_img = nav.generateView()
+       # ask nav for new img 
+        overview_img, curr_img = nav.update()
         cv2.imshow("zoom", curr_img)
         cv2.imshow("overview", overview_img)
         key = cv2.waitKey(20)

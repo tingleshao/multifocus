@@ -13,6 +13,10 @@ class TreeNavigator:
         self.global_frame = starting_node.getFrame()
         self.prev_node = None
         self.in_layer2 = False
+        self.H = None
+
+    def setH(self, H):
+        self.H = H 
         
     def printCurrNodeInfo(self):
         curr_node_name = self.curr_node.getName() if self.curr_node else "none"
@@ -28,7 +32,9 @@ class TreeNavigator:
     # generate the small window showing the overview: where I am with respect to the global
         img = self.global_frame
         img = cv2.resize(img, (500, 357)) 
-        cv2.rectangle(img,(int(curr_xlim[0]*500./3840), int(curr_ylim[0]*500./3840)),(int(cur_xlim[1]*500./3840), int(curr_ylim[1]*500./3840)),(0,255,0),3)
+        img = cv2.warpPerspective(img, self.H, (img.shape[1] + img.shape[1], img.shape[0] + img.shape[1]))
+        cv2.rectangle(img,(int(curr_xlim[0]*1000./3840), int(curr_ylim[0]*1000./3840)),(int(cur_xlim[1]*1000./3840), int(curr_ylim[1]*1000./3840)),(0,255,0),3)
+        img = cv2.resize(img, (500, 357))
         return img
   
     def generateView(self, x, y, curr_xlim, curr_ylim):
@@ -47,31 +53,42 @@ class TreeNavigator:
                     print "enter in zoom in mode"
                     child_img = self.curr_node.getFrame() 
                     img = self.prev_node.getFrame()
-                    img = img[ylim[0]:ylim[1], xlim[0]:xlim[1]]
-                    in_focus_x0 = xlim[0] * 2 if xlim[0] > 0 else 0
-                    in_focus_x1 = xlim[1] * 2 if xlim[1] < 3840 / 2 + 0 else 3840 + 0 
-                    in_focus_y0 = ylim[0] * 2 if ylim[0] > 0 else 0
-                    in_focus_y1 = ylim[1] * 2 if ylim[1] < 2748 / 2 + 0 else 2748 + 0  
-                    real_x0 = ((in_focus_x0)/2 - xlim[0]) * ratio2 
-                    real_x1 = ((in_focus_x1)/2 - xlim[0]) * ratio2
-                    real_y0 = ((in_focus_y0)/2 - ylim[0]) * ratio2
-                    real_y1 = ((in_focus_y1)/2 - ylim[0]) * ratio2  
+                    img = cv2.resize(img, (500, 357))
+                    img = cv2.warpPerspective(img, self.H, (img.shape[1] + img.shape[1], img.shape[0] + img.shape[1]))
+                    img = img[curr_ylim[0] * 1000./3840:curr_ylim[1]* 1000./3840, curr_xlim[0]* 1000./3840:curr_xlim[1]* 1000./3840]
+                    in_focus_x0 = curr_xlim[0] * 2 if curr_xlim[0] > 0 else 0
+                    in_focus_x1 = curr_xlim[1] * 2 if curr_xlim[1] < 3840 / 2 + 0 else 3840 + 0 
+                    in_focus_y0 = curr_ylim[0] * 2 if curr_ylim[0] > 0 else 0
+                    in_focus_y1 = curr_ylim[1] * 2 if curr_ylim[1] < 2748 / 2 + 0 else 2748 + 0  
+                    # test if in_focus is computed correctly
+                    child_img_small = cv2.resize(child_img, (500, 357)) 
+                    cv2.rectangle(child_img_small, (int(in_focus_x0 * 500. / 3840), int(in_focus_y0 * 500. / 3840)), (int(in_focus_x1*500./3840), int(in_focus_y1*500./3840)), (0,255,0), 3)
+
+                    real_x0 = ((in_focus_x0)/2 - curr_xlim[0]) * ratio2 
+                    real_x1 = ((in_focus_x1)/2 - curr_xlim[0]) * ratio2
+                    real_y0 = ((in_focus_y0)/2 - curr_ylim[0]) * ratio2
+                    real_y1 = ((in_focus_y1)/2 - curr_ylim[0]) * ratio2  
                     real_x0 = real_x0 if real_x0 > 0 else 0
                     real_x1 = real_x1 if real_x1 < 500 else 500
                     real_y0 = real_y0 if real_y0 > 0 else 0
                     real_y1 = real_y1 if real_y1 < 357 else 357
+                    
+                    cv2.imshow("test", child_img_small)
+
                     img = cv2.resize(img, (500, 357))
+                    cv2.rectangle(img, (int(real_x0), int(real_y0)), (int(real_x1), int(real_y1)), (255,0,0),3)
+                    cv2.imshow("test2", img)
+ 
                     print "in focus: " + str(in_focus_y0) + " " + str(in_focus_y1) + " " + str(in_focus_x0) + " " + str(in_focus_x1)  
                     print "real: " + str(real_y0) + " " + str(real_y1) + " " + str(real_x0) + " " + str(real_x1)
                     print "img: " + str(img.shape)
                     sub_img = child_img[in_focus_y0:in_focus_y1, in_focus_x0:in_focus_x1]
                     sub_img = cv2.resize(sub_img, (int(real_x1) - int(real_x0), int(real_y1) - int(real_y0)))
-                      
                     img[int(real_y0):int(real_y1), int(real_x0):int(real_x1)] = sub_img 
             else: 
                  print "stay in curr node mode!!!!!!!"
                  img = self.curr_node.getFrame()
-                 img = img[int(ylim[0]):int(ylim[1]), int(xlim[0]):int(xlim[1])] 
+                 img = img[int(curr_ylim[0])*2:int(curr_ylim[1])*2, int(curr_xlim[0])*2:int(curr_xlim[1])*2] 
                  img = cv2.resize(img, (500, 357))             
          #   img = self.curr_node.generateView(x, y, curr_xlim, curr_ylim)
             self.in_layer2 = True
@@ -82,7 +99,10 @@ class TreeNavigator:
                 self.prev_node = None
                 self.in_layer2 = False
             img = self.curr_node.getFrame()
-            img = img[curr_ylim[0]:curr_ylim[1], curr_xlim[0]:curr_xlim[1]]
+            img = cv2.resize(img, (500, 357)) 
+            img1 = cv2.warpPerspective(img, self.H, (img.shape[1] + img.shape[1], img.shape[0] + img.shape[0]))
+            img1 = img1[curr_ylim[0] * 1000./3840:curr_ylim[1] * 1000./3840, curr_xlim[0] * 1000./3840:curr_xlim[1] * 1000./3840]
+            img = img1
         return cv2.resize(img, (500, 357))
         
 
@@ -148,8 +168,13 @@ mm_00_t = TreeNode(v0, [mm_01_t], None, mm_00_x, mm_00_y, mm_00_w, mm_00_h, "vid
 
 cur_xlim = [0, mm_00_w]
 cur_ylim = [0, mm_00_h]
+H = np.array([[1.99116709e+00, 2.96239415e-02, 4.03929046e+01], [ -8.01318987e-02, 2.10573123e+00, 3.05521944e+01], [-1.99180445e-04, 4.62456395e-05, 1.00000000e+00]])
 curr_img = mm_00_t.getFrame()
 overview_img = mm_00_t.getFrame()
+curr_img = cv2.resize(curr_img, (500, 357))
+curr_img = cv2.warpPerspective(curr_img, H, (curr_img.shape[1] + curr_img.shape[1], curr_img.shape[0] + curr_img.shape[0]))
+overview_img = cv2.resize(overview_img, (500, 357))
+overview_img = cv2.warpPerspective(overview_img, H, (overview_img.shape[1] + overview_img.shape[1], overview_img.shape[0] + overview_img.shape[0]))
 #print curr_img
 mm_01_t.setMom(mm_00_t)
 
@@ -216,7 +241,7 @@ def zoom_tree_factory(base_scale = 2.):
 
 
 def main():
-    global curr_img, overview_img
+    global curr_img, overview_img, nav
     cap0 = cv2.VideoCapture('/home/chong/Data/acA3800-14uc__21833705__20160422_141738868.avi')
     cap1 = cv2.VideoCapture('/home/chong/Data/acA3800-14uc__21833709__20160422_141618171.avi') 
     fps = cap0.get(cv2.CAP_PROP_FPS)
@@ -236,6 +261,7 @@ def main():
 
     stitched = True
     H = np.array([[1.99116709e+00, 2.96239415e-02, 4.03929046e+01], [ -8.01318987e-02, 2.10573123e+00, 3.05521944e+01], [-1.99180445e-04, 4.62456395e-05, 1.00000000e+00]])
+    nav.setH(H)
 
 #    global cur_xlim, cur_ylim, curr_img
     '''test some Jpeg Tree with user input'''

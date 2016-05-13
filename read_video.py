@@ -3,80 +3,14 @@ import cv2
 import imutils
 import time
 import matplotlib.pyplot as plt
-
-class Stitcher: 
-    def __init__(self):
-        self.isv3 = imutils.is_cv3()
-
-    def stitch(self, images, ratio=0.75, reprojThresh=4.0, showMatches=False):
-        (imageB, imageA) = images 
-        (kpsA, featuresA) = self.detectAndDescribe(imageA)
-        (kpsB, featuresB) = self.detectAndDescribe(imageB) 
-  
-        M = self.matchKeypoints(kpsA, kpsB, featuresA, featuresB, ratio, reprojThresh) 
-    
-        if M is None:
-            return None
-
-        (matches, H, status) = M 
-        result = cv2.warpPerspective(imageA, H, (imageA.shape[1] + imageB.shape[1], imageA.shape[0]))
-        result[0:imageB.shape[0], 0:imageB.shape[1]] = imageB
-        if showMatches:
-            vis = self.drawMatches(imageA, imageB, kpsA, kpsB, matches, status) 
-            return (result, vis, H) 
-        return (result, None, H)
-
-    def detectAndDescribe(self, image):
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-  
-        if self.isv3:
-            descriptor = cv2.xfeatures2d.SIFT_create() 
-            (kps, features) = descriptor.detectAndCompute(image, None)
-        else:
-            detector = cv2.FeatureDetector_create("SIFT")
-            kps = detetor.detect(gray) 
-            extractor = cv2.DescriptorExtractor_create("SIFT")
-            (kps, features) = extractor.compute(gray, kps)
-
-        kps = np.float32([kp.pt for kp in kps])
-        return (kps, features) 
-
-    def matchKeypoints(self, kpsA, kpsB, featuresA, featuresB, ratio, reprojThresh):
-        matcher = cv2.DescriptorMatcher_create("BruteForce")
-        rawMatches = matcher.knnMatch(featuresA, featuresB, 2)
-        matches = [] 
-        for m in rawMatches:
-            if len(m) == 2 and m[0].distance < m[1].distance * ratio:
-                matches.append((m[0].trainIdx, m[0].queryIdx)) 
-        if len(matches) > 4: 
-            ptsA = np.float32([kpsA[i] for (_, i) in matches])
-            ptsB = np.float32([kpsB[i] for (i, _) in matches]) 
-    
-            (H, status) = cv2.findHomography(ptsA, ptsB, cv2.RANSAC, reprojThresh) 
-            return (matches, H, status) 
-        return None 
-    
-    def drawMatches(self, imageA, imageB, kpsA, kpsB, matches, status): 
-        (hA, wA) = imageA.shape[:2] 
-        (hB, wB) = imageB.shape[:2] 
-        vis = np.zeros((max(hA, hB), wA + wB, 3), dtype="uint8")
-        vis[0:hA, 0:wA] = imageA
-        vis[0:hB, wA:] = imageB
-   
-        for ((trainIdx, queryIdx), s) in zip(matches, status): 
-            if s == 1:
-                ptA = (int(kpsA[queryIdx][0]), int(kpsA[queryIdx][1]))
-                ptB = (int(kpsB[trainIdx][0]) + wA, int(kpsB[trainIdx][1]))
-                cv2.line(vis, ptA, ptB, (0, 255, 0), 1)
-        return vis 
+from stitcher import Stitcher
 
 
-class TreeNavigator: 
-    def f(self):
-        return 'navigator init...'
-         
+class TreeNavigator:          
     def __init__(self, starting_node):
+        print 'navigator init...'
         self.curr_node = starting_node
+        self.global_frame = starting_node.getFrame()
         self.prev_node = None
         self.in_layer2 = False
         
@@ -89,14 +23,19 @@ class TreeNavigator:
     # enhance the image when zoomed in 
         return None
         
+    def generateOverview(self, x, y, curr_xlim, curr_ylim): 
+        print "overview changed!"
+    # generate the small window showing the overview: where I am with respect to the global
+        img = self.global_frame
+        img = cv2.resize(img, (500, 357)) 
+        cv2.rectangle(img,(int(curr_xlim[0]*500./3840), int(curr_ylim[0]*500./3840)),(int(cur_xlim[1]*500./3840), int(curr_ylim[1]*500./3840)),(0,255,0),3)
+        return img
+  
     def generateView(self, x, y, curr_xlim, curr_ylim):
     # curr_xlim / curr_ylim: x - y lims in global space
     # responsible for triversing the tree
         img = None
-        
-        xlim = curr_xlim
-        ylim = curr_ylim 
-        ratio2 = 500. / (xlim[1] - xlim[0])
+        ratio2 = 500. / (curr_xlim[1] - curr_xlim[0])
         ratio1 = 500. / 3840
         if (curr_ylim[1] - curr_ylim[0] < 500):
             # approach: having a reference to the current mom node, and blend using the mom node data and current data 
@@ -113,10 +52,10 @@ class TreeNavigator:
                     in_focus_x1 = xlim[1] * 2 if xlim[1] < 3840 / 2 + 0 else 3840 + 0 
                     in_focus_y0 = ylim[0] * 2 if ylim[0] > 0 else 0
                     in_focus_y1 = ylim[1] * 2 if ylim[1] < 2748 / 2 + 0 else 2748 + 0  
-                    real_x0 = (( in_focus_x0 ) /2 - xlim[0] ) * ratio2 
-                    real_x1 = (( in_focus_x1 ) /2  - xlim[0] )* ratio2
-                    real_y0 = (( in_focus_y0 ) /2 - ylim[0] ) * ratio2
-                    real_y1 = (( in_focus_y1 ) /2   - ylim[0] ) * ratio2  
+                    real_x0 = ((in_focus_x0)/2 - xlim[0]) * ratio2 
+                    real_x1 = ((in_focus_x1)/2 - xlim[0]) * ratio2
+                    real_y0 = ((in_focus_y0)/2 - ylim[0]) * ratio2
+                    real_y1 = ((in_focus_y1)/2 - ylim[0]) * ratio2  
                     real_x0 = real_x0 if real_x0 > 0 else 0
                     real_x1 = real_x1 if real_x1 < 500 else 500
                     real_y0 = real_y0 if real_y0 > 0 else 0
@@ -132,7 +71,7 @@ class TreeNavigator:
             else: 
                  print "stay in curr node mode!!!!!!!"
                  img = self.curr_node.getFrame()
-                 img = img[ylim[0]:ylim[1], xlim[0]:xlim[1]] 
+                 img = img[int(ylim[0]):int(ylim[1]), int(xlim[0]):int(xlim[1])] 
                  img = cv2.resize(img, (500, 357))             
          #   img = self.curr_node.generateView(x, y, curr_xlim, curr_ylim)
             self.in_layer2 = True
@@ -148,10 +87,8 @@ class TreeNavigator:
         
 
 class TreeNode:
-    def f(self): 
-        print 'Node init...'
-     
     def __init__(self, data, children, mom, upper_x, upper_y, w, h, name): 
+        print 'Node init...'
         self.data = data 
         self.children = children 
         self.mom = mom
@@ -177,7 +114,6 @@ class TreeNode:
     # later change this by having a map between x, y and child id 
     # so that we can have multiple children returned.
         return self.children[index]
-    # TODO: discover a blending approach 
     
     def getFrame(self):
         ret, frame = self.data.read()
@@ -213,6 +149,7 @@ mm_00_t = TreeNode(v0, [mm_01_t], None, mm_00_x, mm_00_y, mm_00_w, mm_00_h, "vid
 cur_xlim = [0, mm_00_w]
 cur_ylim = [0, mm_00_h]
 curr_img = mm_00_t.getFrame()
+overview_img = mm_00_t.getFrame()
 #print curr_img
 mm_01_t.setMom(mm_00_t)
 
@@ -236,7 +173,7 @@ def transformX(x):
        
 def zoom_tree_factory(base_scale = 2.):
     def zoom_fun(event, x, y, flags, param):
-        global cur_xlim, cur_ylim, nav, curr_img
+        global cur_xlim, cur_ylim, nav, curr_img, overview_img
         if event == cv2.EVENT_LBUTTONDOWN or event == cv2.EVENT_MOUSEWHEEL:
             print "L button down!" 
             cur_xrange = (cur_xlim[1] - cur_xlim[0]) * 0.5
@@ -272,14 +209,14 @@ def zoom_tree_factory(base_scale = 2.):
             cur_ylim = [ylow if ylow > -1 else 0, 
                     yhigh if yhigh < ylim else ylim-1]        
             if -0.1 <= ((cur_ylim[1] - cur_ylim[0]) / (cur_xlim[1] - cur_xlim[0]) - 2748./3840) <= 0.1: 
-                curr_img = nav.generateView(x, y, cur_xlim, cur_ylim) # current node is responsible for generating a view.
-      #          print curr_img
+                curr_img = nav.generateView(x, y, cur_xlim, cur_ylim) 
+                overview_img = nav.generateOverview(x, y, cur_xlim, cur_ylim)
                 nav.printCurrNodeInfo()
     return zoom_fun
 
 
 def main():
-    global curr_img
+    global curr_img, overview_img
     cap0 = cv2.VideoCapture('/home/chong/Data/acA3800-14uc__21833705__20160422_141738868.avi')
     cap1 = cv2.VideoCapture('/home/chong/Data/acA3800-14uc__21833709__20160422_141618171.avi') 
     fps = cap0.get(cv2.CAP_PROP_FPS)
@@ -288,16 +225,17 @@ def main():
 
     first_frame0 = None
     first_frame1 = None
-
+    # TODO: show a subwindow
     # TODO: frame rate is limited by how fast the library can render the frame (reading frame from disk and display it on the screen)
     #       right now this is only relevant to the opencv video read code
     # TODO: tree data structure
     # TODO: go some deep shit: H.265 multi scale support investigate in x265.s
     # TODO: click zoom in 
     # TODO: code for switching neighbor view, etc.
+    # TODO: discover a blending approach 
 
-    stitched = False
-    H = None
+    stitched = True
+    H = np.array([[1.99116709e+00, 2.96239415e-02, 4.03929046e+01], [ -8.01318987e-02, 2.10573123e+00, 3.05521944e+01], [-1.99180445e-04, 4.62456395e-05, 1.00000000e+00]])
 
 #    global cur_xlim, cur_ylim, curr_img
     '''test some Jpeg Tree with user input'''
@@ -313,11 +251,13 @@ def main():
     print "\n\n\nwww\n\n\n"
    # x = np.array(curr_img)
     curr_img = cv2.resize(curr_img, (500, 357)) 
+    overview_img = cv2.resize(overview_img, (500, 357))
     while True:
       #  if focus_now:
 #     		out_focus_copy = out_focus.copy()
         #curr_img = nav.generateView()
         cv2.imshow("zoom", curr_img)
+        cv2.imshow("overview", overview_img)
         key = cv2.waitKey(20)
     
         if key != -1:
@@ -336,7 +276,6 @@ def main():
     cv2.destroyWindow("preview")
 
     while True:
-      #  while(cap.isOpened()):
         ret, frame0 = cap0.read()
         frame0 = cv2.resize(frame0, (500, 357))
         if (first_frame1 == None) and (frame_counter == 0):
@@ -351,13 +290,13 @@ def main():
             first_frame0 = imutils.resize(first_frame0, width=500)
             first_frame1 = imutils.resize(first_frame1, width=500)
             stitcher = Stitcher()
-          #  (result, vis, H) = stitcher.stitch([first_frame0, first_frame1], showMatches=True)
-            H = np.array([[1.99116709e+00, 2.96239415e-02, 4.03929046e+01], [ -8.01318987e-02, 2.10573123e+00, 3.05521944e+01], [-1.99180445e-04, 4.62456395e-05, 1.00000000e+00]])
+            (result, vis, H) = stitcher.stitch([first_frame0, first_frame1], showMatches=True)
+          #  H = np.array([[1.99116709e+00, 2.96239415e-02, 4.03929046e+01], [ -8.01318987e-02, 2.10573123e+00, 3.05521944e+01], [-1.99180445e-04, 4.62456395e-05, 1.00000000e+00]])
             print "H: " + str(H)
-           # cv2.imshow("image A", first_frame0)
-           # cv2.imshow("image B", first_frame1) 
-           # cv2.imshow("Keypoint Matches", vis) 
-           # cv2.imshow("Result", result)      
+            cv2.imshow("image A", first_frame0)
+            cv2.imshow("image B", first_frame1) 
+            cv2.imshow("Keypoint Matches", vis) 
+            cv2.imshow("Result", result)      
     
         if H != None:
             wframe0 = cv2.warpPerspective(frame0, H, (frame0.shape[1] + frame1.shape[1], frame0.shape[0] + frame1.shape[0]))
@@ -378,12 +317,9 @@ def main():
         cv2.imshow('warped frame0', wframe0)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-
     cap0.release()
     cap1.release()
     cv2.destroyAllWindows()
-
-
 
     
 if __name__ == '__main__':
